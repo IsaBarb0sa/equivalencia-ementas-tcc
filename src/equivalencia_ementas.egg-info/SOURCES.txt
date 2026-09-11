@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/equivalencia_ementas/__init__.py
+src/equivalencia_ementas/main.py
+src/equivalencia_ementas.egg-info/PKG-INFO
+src/equivalencia_ementas.egg-info/SOURCES.txt
+src/equivalencia_ementas.egg-info/dependency_links.txt
+src/equivalencia_ementas.egg-info/requires.txt
+src/equivalencia_ementas.egg-info/top_level.txt
+src/equivalencia_ementas/academico/__init__.py
+src/equivalencia_ementas/academico/application/__init__.py
+src/equivalencia_ementas/academico/domain/__init__.py
+src/equivalencia_ementas/academico/infrastructure/__init__.py
+src/equivalencia_ementas/shared/__init__.py
+src/equivalencia_ementas/shared/database/__init__.py
+src/equivalencia_ementas/shared/settings/__init__.py
