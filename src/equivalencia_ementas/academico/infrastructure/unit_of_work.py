@@ -14,6 +14,13 @@ from equivalencia_ementas.academico.infrastructure.repositories.instituicao_repo
 )
 from equivalencia_ementas.shared.database.session import SessionFactory
 
+from equivalencia_ementas.academico.infrastructure.repositories.matriz_curricular_repository import (
+    SqlAlchemyMatrizCurricularRepository,
+)
+
+from equivalencia_ementas.academico.infrastructure.repositories.matriz_disciplina_repository import (
+    SqlAlchemyMatrizDisciplinaRepository,
+)
 
 class SqlAlchemyAcademicoUnitOfWork:
     def __init__(
@@ -25,6 +32,8 @@ class SqlAlchemyAcademicoUnitOfWork:
         self.instituicoes: SqlAlchemyInstituicaoRepository
         self.cursos: SqlAlchemyCursoRepository
         self.disciplinas: SqlAlchemyDisciplinaRepository
+        self.matrizes_curriculares: SqlAlchemyMatrizCurricularRepository
+        self.matrizes_disciplinas: SqlAlchemyMatrizDisciplinaRepository
 
     def __enter__(self) -> "SqlAlchemyAcademicoUnitOfWork":
         self._session = self._session_factory()
@@ -39,6 +48,13 @@ class SqlAlchemyAcademicoUnitOfWork:
 
         self.disciplinas = SqlAlchemyDisciplinaRepository(
             self._session
+        )
+        self.matrizes_curriculares = (
+            SqlAlchemyMatrizCurricularRepository(self._session)
+        )
+
+        self.matrizes_disciplinas = (
+            SqlAlchemyMatrizDisciplinaRepository(self._session)
         )
 
         return self

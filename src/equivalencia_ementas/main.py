@@ -1,100 +1,87 @@
-from sqlalchemy import text
-
-from equivalencia_ementas.shared.database.engine import engine
-
-
-def main() -> None:
-    with engine.connect() as connection:
-        banco = connection.execute(
-            text("SELECT DB_NAME()")
-        ).scalar_one()
-
-    print("Sistema de Equivalência de Ementas iniciado.")
-    print(f"Banco conectado: {banco}")
-
-
-if __name__ == "__main__":
-    main()
-
+from decimal import Decimal
 
 from equivalencia_ementas.academico.application.commands import (
-    CadastrarCursoCommand,
-    CadastrarDisciplinaCommand,
+    CadastrarMatrizCurricularCommand,
+    VincularDisciplinaMatrizCommand,
 )
 from equivalencia_ementas.academico.application.exceptions import (
-    CursoJaExisteError,
-    DisciplinaJaExisteError,
-    InstituicaoNaoEncontradaError,
+    CursoNaoEncontradoError,
+    DisciplinaJaVinculadaError,
+    DisciplinaNaoEncontradaError,
+    InstituicoesIncompativeisError,
+    MatrizCurricularJaExisteError,
+    MatrizCurricularNaoEditavelError,
+    MatrizCurricularNaoEncontradaError,
 )
-from equivalencia_ementas.academico.application.use_cases.cadastrar_curso import (
-    CadastrarCurso,
+from equivalencia_ementas.academico.application.use_cases.cadastrar_matriz_curricular import (
+    CadastrarMatrizCurricular,
 )
-from equivalencia_ementas.academico.application.use_cases.cadastrar_disciplina import (
-    CadastrarDisciplina,
+from equivalencia_ementas.academico.application.use_cases.vincular_disciplina_matriz import (
+    VincularDisciplinaMatriz,
 )
 from equivalencia_ementas.academico.domain.entities import (
-    ModalidadeCurso,
-    NivelCurso,
+    NaturezaDisciplina,
 )
 from equivalencia_ementas.academico.infrastructure.unit_of_work import (
     SqlAlchemyAcademicoUnitOfWork,
 )
 
 
-INSTITUICAO_ID = 1
-
-
-def cadastrar_curso() -> None:
-    caso_de_uso = CadastrarCurso(
-        SqlAlchemyAcademicoUnitOfWork()
-    )
-
-    command = CadastrarCursoCommand(
-        instituicao_id=INSTITUICAO_ID,
-        codigo="CC",
-        nome="Ciência da Computação",
-        nivel=NivelCurso.GRADUACAO,
-        modalidade=ModalidadeCurso.PRESENCIAL,
-    )
-
-    try:
-        curso_id = caso_de_uso.executar(command)
-        print(f"Curso cadastrado com sucesso. ID: {curso_id}")
-
-    except CursoJaExisteError as error:
-        print(f"Curso não cadastrado: {error}")
-
-
-def cadastrar_disciplina() -> None:
-    caso_de_uso = CadastrarDisciplina(
-        SqlAlchemyAcademicoUnitOfWork()
-    )
-
-    command = CadastrarDisciplinaCommand(
-        instituicao_id=INSTITUICAO_ID,
-        codigo="BD001",
-        nome="Banco de Dados",
-        area_conhecimento="Computação",
-    )
-
-    try:
-        disciplina_id = caso_de_uso.executar(command)
-        print(
-            f"Disciplina cadastrada com sucesso. "
-            f"ID: {disciplina_id}"
-        )
-
-    except DisciplinaJaExisteError as error:
-        print(f"Disciplina não cadastrada: {error}")
+CURSO_ID = 1
+DISCIPLINA_ID = 1
 
 
 def main() -> None:
-    try:
-        cadastrar_curso()
-        cadastrar_disciplina()
+    cadastrar_matriz = CadastrarMatrizCurricular(
+        SqlAlchemyAcademicoUnitOfWork()
+    )
 
-    except InstituicaoNaoEncontradaError as error:
-        print(f"Erro: {error}")
+    try:
+        matriz_id = cadastrar_matriz.executar(
+            CadastrarMatrizCurricularCommand(
+                curso_id=CURSO_ID,
+                codigo="CC-2026",
+                nome="Matriz Ciência da Computação 2026",
+                ano_inicio_vigencia=2026,
+                semestre_inicio=1,
+            )
+        )
+
+        print(f"Matriz cadastrada com sucesso. ID: {matriz_id}")
+
+    except MatrizCurricularJaExisteError as error:
+        print(f"Matriz não cadastrada: {error}")
+        return
+
+    vincular_disciplina = VincularDisciplinaMatriz(
+        SqlAlchemyAcademicoUnitOfWork()
+    )
+
+    try:
+        vinculo_id = vincular_disciplina.executar(
+            VincularDisciplinaMatrizCommand(
+                matriz_curricular_id=matriz_id,
+                disciplina_id=DISCIPLINA_ID,
+                periodo_sugerido=3,
+                natureza=NaturezaDisciplina.OBRIGATORIA,
+                creditos=Decimal("4.00"),
+            )
+        )
+
+        print(
+            f"Disciplina vinculada à matriz. "
+            f"ID da associação: {vinculo_id}"
+        )
+
+    except (
+        CursoNaoEncontradoError,
+        DisciplinaNaoEncontradaError,
+        DisciplinaJaVinculadaError,
+        InstituicoesIncompativeisError,
+        MatrizCurricularNaoEncontradaError,
+        MatrizCurricularNaoEditavelError,
+    ) as error:
+        print(f"Não foi possível vincular a disciplina: {error}")
 
 
 if __name__ == "__main__":

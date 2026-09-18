@@ -216,7 +216,7 @@ class StatusMatrizCurricular(str, Enum):
     ARQUIVADA ='ARQUIVADA'
 
 class NaturezaDisciplina(str, Enum):
-    OBRIGATORIAL ='OBRIGATORIAL'
+    OBRIGATORIA ='OBRIGATORIA'
     OPTATIVA ='OPTATIVA'
     ELETIVA ='ELETIVA'
     OUTRA = 'OUTRA'

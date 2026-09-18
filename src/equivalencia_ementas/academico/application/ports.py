@@ -5,6 +5,8 @@ from equivalencia_ementas.academico.domain.repositories import (
     CursoRepository,
     DisciplinaRepository,
     InstituicaoRepository,
+    MatrizCurricularRepository,
+    MatrizDisciplinaRepository,
 )
 
 
@@ -12,6 +14,8 @@ class AcademicoUnitOfWork(Protocol):
     instituicoes: InstituicaoRepository
     cursos: CursoRepository
     disciplinas: DisciplinaRepository
+    matrizes_curriculares: MatrizCurricularRepository
+    matrizes_disciplinas: MatrizDisciplinaRepository
 
     def __enter__(self) -> Self:
         ...
