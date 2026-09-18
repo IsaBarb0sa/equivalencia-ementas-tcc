@@ -19,9 +19,7 @@ class SqlAlchemyMatrizDisciplinaRepository:
         matriz_disciplina: MatrizDisciplina,
     ) -> None:
         model = MatrizDisciplinaModel(
-            matriz_curricular_id=(
-                matriz_disciplina.matriz_curricular_id
-            ),
+            matriz_curricular_id=(matriz_disciplina.matriz_curricular_id),
             disciplina_id=matriz_disciplina.disciplina_id,
             periodo_sugerido=matriz_disciplina.periodo_sugerido,
             natureza=matriz_disciplina.natureza.value,
@@ -32,9 +30,21 @@ class SqlAlchemyMatrizDisciplinaRepository:
         self._session.add(model)
         self._session.flush()
 
-        matriz_disciplina.atribuir_id(
-            model.matriz_disciplina_id
+        matriz_disciplina.atribuir_id(model.matriz_disciplina_id)
+
+    def buscar_por_id(
+        self,
+        matriz_disciplina_id: int,
+    ) -> MatrizDisciplina | None:
+        model = self._session.get(
+            MatrizDisciplinaModel,
+            matriz_disciplina_id,
         )
+
+        if model is None:
+            return None
+
+        return self._converter_para_entidade(model)
 
     def buscar_associacao(
         self,
@@ -42,10 +52,8 @@ class SqlAlchemyMatrizDisciplinaRepository:
         disciplina_id: int,
     ) -> MatrizDisciplina | None:
         statement = select(MatrizDisciplinaModel).where(
-            MatrizDisciplinaModel.matriz_curricular_id
-            == matriz_curricular_id,
-            MatrizDisciplinaModel.disciplina_id
-            == disciplina_id,
+            MatrizDisciplinaModel.matriz_curricular_id == matriz_curricular_id,
+            MatrizDisciplinaModel.disciplina_id == disciplina_id,
         )
 
         model = self._session.scalar(statement)
@@ -53,6 +61,12 @@ class SqlAlchemyMatrizDisciplinaRepository:
         if model is None:
             return None
 
+        return self._converter_para_entidade(model)
+
+    @staticmethod
+    def _converter_para_entidade(
+        model: MatrizDisciplinaModel,
+    ) -> MatrizDisciplina:
         return MatrizDisciplina(
             matriz_disciplina_id=model.matriz_disciplina_id,
             matriz_curricular_id=model.matriz_curricular_id,

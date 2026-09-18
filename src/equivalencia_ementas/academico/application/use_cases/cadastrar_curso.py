@@ -17,9 +17,7 @@ class CadastrarCurso:
 
     def executar(self, command: CadastrarCursoCommand) -> int:
         with self._unit_of_work as uow:
-            instituicao = uow.instituicoes.buscar_por_id(
-                command.instituicao_id
-            )
+            instituicao = uow.instituicoes.buscar_por_id(command.instituicao_id)
 
             if instituicao is None:
                 raise InstituicaoNaoEncontradaError(
@@ -49,8 +47,6 @@ class CadastrarCurso:
             uow.commit()
 
         if curso.curso_id is None:
-            raise RuntimeError(
-                "O banco não retornou o identificador do curso."
-            )
+            raise RuntimeError("O banco não retornou o identificador do curso.")
 
         return curso.curso_id

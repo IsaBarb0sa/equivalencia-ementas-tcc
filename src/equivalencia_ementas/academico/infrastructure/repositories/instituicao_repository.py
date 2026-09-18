@@ -43,9 +43,7 @@ class SqlAlchemyInstituicaoRepository:
         self,
         codigo: str,
     ) -> Instituicao | None:
-        statement = select(InstituicaoModel).where(
-            InstituicaoModel.codigo == codigo
-        )
+        statement = select(InstituicaoModel).where(InstituicaoModel.codigo == codigo)
 
         model = self._session.scalar(statement)
 

@@ -13,6 +13,7 @@ class CursoJaExisteError(Exception):
 class DisciplinaJaExisteError(Exception):
     pass
 
+
 class CursoNaoEncontradoError(Exception):
     pass
 
@@ -38,4 +39,16 @@ class MatrizCurricularNaoEditavelError(Exception):
 
 
 class InstituicoesIncompativeisError(Exception):
+    pass
+
+
+class MatrizDisciplinaNaoEncontradaError(Exception):
+    pass
+
+
+class EmentaMatrizDisciplinaIncompativelError(Exception):
+    pass
+
+
+class EmentaJaExisteError(Exception):
     pass

@@ -20,9 +20,7 @@ class CadastrarDisciplina:
         command: CadastrarDisciplinaCommand,
     ) -> int:
         with self._unit_of_work as uow:
-            instituicao = uow.instituicoes.buscar_por_id(
-                command.instituicao_id
-            )
+            instituicao = uow.instituicoes.buscar_por_id(command.instituicao_id)
 
             if instituicao is None:
                 raise InstituicaoNaoEncontradaError(
@@ -36,11 +34,9 @@ class CadastrarDisciplina:
                 area_conhecimento=command.area_conhecimento,
             )
 
-            disciplina_existente = (
-                uow.disciplinas.buscar_por_codigo(
-                    instituicao_id=disciplina.instituicao_id,
-                    codigo=disciplina.codigo,
-                )
+            disciplina_existente = uow.disciplinas.buscar_por_codigo(
+                instituicao_id=disciplina.instituicao_id,
+                codigo=disciplina.codigo,
             )
 
             if disciplina_existente is not None:
@@ -54,8 +50,6 @@ class CadastrarDisciplina:
             uow.commit()
 
         if disciplina.disciplina_id is None:
-            raise RuntimeError(
-                "O banco não retornou o identificador da disciplina."
-            )
+            raise RuntimeError("O banco não retornou o identificador da disciplina.")
 
         return disciplina.disciplina_id

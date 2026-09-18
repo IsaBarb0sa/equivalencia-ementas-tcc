@@ -26,50 +26,38 @@ class VincularDisciplinaMatriz:
         command: VincularDisciplinaMatrizCommand,
     ) -> int:
         with self._unit_of_work as uow:
-            matriz = uow.matrizes_curriculares.buscar_por_id(
-                command.matriz_curricular_id
-            )
+            matriz = uow.matrizes_curriculares.buscar_por_id(command.matriz_curricular_id)
 
             if matriz is None:
                 raise MatrizCurricularNaoEncontradaError(
-                    f"Matriz {command.matriz_curricular_id} "
-                    f"não encontrada."
+                    f"Matriz {command.matriz_curricular_id} não encontrada."
                 )
 
             if not matriz.pode_ser_alterada:
                 raise MatrizCurricularNaoEditavelError(
-                    "Somente matrizes em rascunho podem receber "
-                    "novas disciplinas."
+                    "Somente matrizes em rascunho podem receber novas disciplinas."
                 )
 
-            disciplina = uow.disciplinas.buscar_por_id(
-                command.disciplina_id
-            )
+            disciplina = uow.disciplinas.buscar_por_id(command.disciplina_id)
 
             if disciplina is None:
                 raise DisciplinaNaoEncontradaError(
-                    f"Disciplina {command.disciplina_id} "
-                    f"não encontrada."
+                    f"Disciplina {command.disciplina_id} não encontrada."
                 )
 
             curso = uow.cursos.buscar_por_id(matriz.curso_id)
 
             if curso is None:
-                raise CursoNaoEncontradoError(
-                    f"Curso {matriz.curso_id} não encontrado."
-                )
+                raise CursoNaoEncontradoError(f"Curso {matriz.curso_id} não encontrado.")
 
             if curso.instituicao_id != disciplina.instituicao_id:
                 raise InstituicoesIncompativeisError(
-                    "A disciplina e o curso da matriz pertencem "
-                    "a instituições diferentes."
+                    "A disciplina e o curso da matriz pertencem a instituições diferentes."
                 )
 
-            associacao_existente = (
-                uow.matrizes_disciplinas.buscar_associacao(
-                    matriz_curricular_id=matriz.matriz_curricular_id,
-                    disciplina_id=disciplina.disciplina_id,
-                )
+            associacao_existente = uow.matrizes_disciplinas.buscar_associacao(
+                matriz_curricular_id=matriz.matriz_curricular_id,
+                disciplina_id=disciplina.disciplina_id,
             )
 
             if associacao_existente is not None:
@@ -87,14 +75,10 @@ class VincularDisciplinaMatriz:
                 creditos=command.creditos,
             )
 
-            uow.matrizes_disciplinas.adicionar(
-                matriz_disciplina
-            )
+            uow.matrizes_disciplinas.adicionar(matriz_disciplina)
             uow.commit()
 
         if matriz_disciplina.matriz_disciplina_id is None:
-            raise RuntimeError(
-                "O banco não retornou o identificador da associação."
-            )
+            raise RuntimeError("O banco não retornou o identificador da associação.")
 
         return matriz_disciplina.matriz_disciplina_id

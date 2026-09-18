@@ -20,14 +20,11 @@ class CadastrarInstituicao:
     ) -> int:
         with self._unit_of_work as uow:
             if command.codigo is not None:
-                instituicao_existente = (
-                    uow.instituicoes.buscar_por_codigo(command.codigo)
-                )
+                instituicao_existente = uow.instituicoes.buscar_por_codigo(command.codigo)
 
                 if instituicao_existente is not None:
                     raise InstituicaoJaExisteError(
-                        f"Já existe uma instituição com o código "
-                        f"'{command.codigo}'."
+                        f"Já existe uma instituição com o código '{command.codigo}'."
                     )
 
             instituicao = Instituicao(
@@ -43,8 +40,6 @@ class CadastrarInstituicao:
             uow.commit()
 
         if instituicao.instituicao_id is None:
-            raise RuntimeError(
-                "O banco não retornou o identificador da instituição."
-            )
+            raise RuntimeError("O banco não retornou o identificador da instituição.")
 
         return instituicao.instituicao_id

@@ -7,10 +7,12 @@ from sqlalchemy import (
     DateTime,
     FetchedValue,
     ForeignKey,
-    String,
-    Unicode,
+    Integer,
     Numeric,
     SmallInteger,
+    String,
+    Unicode,
+    UnicodeText,
 )
 from sqlalchemy.dialects.mssql import ROWVERSION
 from sqlalchemy.orm import Mapped, mapped_column
@@ -92,6 +94,7 @@ class InstituicaoModel(Base):
         nullable=False,
         server_default=FetchedValue(),
     )
+
 
 class CursoModel(Base):
     __tablename__ = "Curso"
@@ -232,6 +235,7 @@ class DisciplinaModel(Base):
         server_default=FetchedValue(),
     )
 
+
 class MatrizCurricularModel(Base):
     __tablename__ = "MatrizCurricular"
     __table_args__ = {"schema": "academico"}
@@ -365,6 +369,131 @@ class MatrizDisciplinaModel(Base):
 
     criado_em: Mapped[datetime] = mapped_column(
         "CriadoEm",
+        DateTime,
+        nullable=False,
+        server_default=FetchedValue(),
+    )
+
+    versao_linha: Mapped[bytes] = mapped_column(
+        "VersaoLinha",
+        ROWVERSION,
+        nullable=False,
+        server_default=FetchedValue(),
+    )
+
+
+class EmentaModel(Base):
+    __tablename__ = "Ementa"
+    __table_args__ = {"schema": "academico"}
+
+    ementa_id: Mapped[int] = mapped_column(
+        "EmentaId",
+        BigInteger,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    disciplina_id: Mapped[int] = mapped_column(
+        "DisciplinaId",
+        BigInteger,
+        ForeignKey("academico.Disciplina.DisciplinaId"),
+        nullable=False,
+    )
+
+    matriz_disciplina_id: Mapped[int | None] = mapped_column(
+        "MatrizDisciplinaId",
+        BigInteger,
+        ForeignKey("academico.MatrizDisciplina.MatrizDisciplinaId"),
+        nullable=True,
+    )
+
+    documento_fonte_id: Mapped[int | None] = mapped_column(
+        "DocumentoFonteId",
+        BigInteger,
+        nullable=True,
+    )
+
+    versao: Mapped[str] = mapped_column(
+        "Versao",
+        Unicode(30),
+        nullable=False,
+    )
+
+    idioma: Mapped[str] = mapped_column(
+        "Idioma",
+        String(10),
+        nullable=False,
+    )
+
+    ano_vigencia: Mapped[int | None] = mapped_column(
+        "AnoVigencia",
+        SmallInteger,
+        nullable=True,
+    )
+
+    semestre_vigencia: Mapped[int | None] = mapped_column(
+        "SemestreVigencia",
+        SmallInteger,
+        nullable=True,
+    )
+
+    resumo: Mapped[str | None] = mapped_column(
+        "Resumo",
+        UnicodeText,
+        nullable=True,
+    )
+
+    carga_horaria_declarada: Mapped[Decimal] = mapped_column(
+        "CargaHorariaDeclarada",
+        Numeric(8, 2),
+        nullable=False,
+    )
+
+    unidade_carga_horaria: Mapped[str] = mapped_column(
+        "UnidadeCargaHoraria",
+        String(10),
+        nullable=False,
+    )
+
+    duracao_hora_aula_minutos: Mapped[int | None] = mapped_column(
+        "DuracaoHoraAulaMinutos",
+        SmallInteger,
+        nullable=True,
+    )
+
+    carga_horaria_normalizada_min: Mapped[int | None] = mapped_column(
+        "CargaHorariaNormalizadaMin",
+        Integer,
+        nullable=True,
+    )
+
+    status: Mapped[str] = mapped_column(
+        "Status",
+        String(20),
+        nullable=False,
+    )
+
+    confianca_parsing: Mapped[Decimal | None] = mapped_column(
+        "ConfiancaParsing",
+        Numeric(6, 5),
+        nullable=True,
+    )
+
+    publicada_em: Mapped[datetime | None] = mapped_column(
+        "PublicadaEm",
+        DateTime,
+        nullable=True,
+    )
+
+    criado_em: Mapped[datetime] = mapped_column(
+        "CriadoEm",
+        DateTime,
+        nullable=False,
+        server_default=FetchedValue(),
+    )
+
+    atualizado_em: Mapped[datetime] = mapped_column(
+        "AtualizadoEm",
         DateTime,
         nullable=False,
         server_default=FetchedValue(),

@@ -1,87 +1,72 @@
 from decimal import Decimal
 
 from equivalencia_ementas.academico.application.commands import (
-    CadastrarMatrizCurricularCommand,
-    VincularDisciplinaMatrizCommand,
+    CadastrarEmentaCommand,
 )
-from equivalencia_ementas.academico.application.exceptions import (
-    CursoNaoEncontradoError,
-    DisciplinaJaVinculadaError,
-    DisciplinaNaoEncontradaError,
-    InstituicoesIncompativeisError,
-    MatrizCurricularJaExisteError,
-    MatrizCurricularNaoEditavelError,
-    MatrizCurricularNaoEncontradaError,
-)
-from equivalencia_ementas.academico.application.use_cases.cadastrar_matriz_curricular import (
-    CadastrarMatrizCurricular,
-)
-from equivalencia_ementas.academico.application.use_cases.vincular_disciplina_matriz import (
-    VincularDisciplinaMatriz,
+from equivalencia_ementas.academico.application.use_cases.cadastrar_ementa import (
+    CadastrarEmenta,
 )
 from equivalencia_ementas.academico.domain.entities import (
-    NaturezaDisciplina,
+    UnidadeCargaHoraria,
 )
 from equivalencia_ementas.academico.infrastructure.unit_of_work import (
     SqlAlchemyAcademicoUnitOfWork,
 )
 
 
-CURSO_ID = 1
-DISCIPLINA_ID = 1
+DISCIPLINA_ID = 2
+MATRIZ_DISCIPLINA_ID = 2
+
+
+EMENTA_SEMIOLOGIA = (
+    "Realização do exame clínico, diagnóstico diferencial, "
+    "diagnóstico final, prognóstico e plano de tratamento das "
+    "doenças da cavidade oral. Desenvolvimento de habilidades "
+    "necessárias para a utilização de seus conhecimentos de forma "
+    "efetiva como procedimento diário de sua clínica, como na "
+    "utilização dos recursos do exame clínico na obtenção de sinais "
+    "e sintomas das doenças e atribuir valor clínico a estes. "
+    "Trabalho com tema transversal - liberdade de aprender, ensinar, "
+    "pesquisar e divulgar a cultura, o pensamento, a arte e o saber."
+)
+
+
+def cadastrar_ementa_semiologia() -> int:
+    if DISCIPLINA_ID <= 2:
+        raise RuntimeError(
+        )
+
+    if MATRIZ_DISCIPLINA_ID <= 2:
+        raise RuntimeError(
+        )
+
+    command = CadastrarEmentaCommand(
+        disciplina_id=DISCIPLINA_ID,
+        matriz_disciplina_id=MATRIZ_DISCIPLINA_ID,
+        versao="2019/2",
+        idioma="pt-BR",
+        ano_vigencia=2019,
+        semestre_vigencia=2,
+        resumo=EMENTA_SEMIOLOGIA,
+        carga_horaria_declarada=Decimal("40"),
+        unidade_carga_horaria=UnidadeCargaHoraria.HORA,
+        carga_horaria_normalizada_min=2400,
+    )
+
+    caso_de_uso = CadastrarEmenta(
+        SqlAlchemyAcademicoUnitOfWork()
+    )
+
+    return caso_de_uso.executar(command)
 
 
 def main() -> None:
-    cadastrar_matriz = CadastrarMatrizCurricular(
-        SqlAlchemyAcademicoUnitOfWork()
+    ementa_id = cadastrar_ementa_semiologia()
+
+    print(
+        "Ementa de Semiologia cadastrada com sucesso. "
+        f"EmentaId: {ementa_id}"
     )
-
-    try:
-        matriz_id = cadastrar_matriz.executar(
-            CadastrarMatrizCurricularCommand(
-                curso_id=CURSO_ID,
-                codigo="CC-2026",
-                nome="Matriz Ciência da Computação 2026",
-                ano_inicio_vigencia=2026,
-                semestre_inicio=1,
-            )
-        )
-
-        print(f"Matriz cadastrada com sucesso. ID: {matriz_id}")
-
-    except MatrizCurricularJaExisteError as error:
-        print(f"Matriz não cadastrada: {error}")
-        return
-
-    vincular_disciplina = VincularDisciplinaMatriz(
-        SqlAlchemyAcademicoUnitOfWork()
-    )
-
-    try:
-        vinculo_id = vincular_disciplina.executar(
-            VincularDisciplinaMatrizCommand(
-                matriz_curricular_id=matriz_id,
-                disciplina_id=DISCIPLINA_ID,
-                periodo_sugerido=3,
-                natureza=NaturezaDisciplina.OBRIGATORIA,
-                creditos=Decimal("4.00"),
-            )
-        )
-
-        print(
-            f"Disciplina vinculada à matriz. "
-            f"ID da associação: {vinculo_id}"
-        )
-
-    except (
-        CursoNaoEncontradoError,
-        DisciplinaNaoEncontradaError,
-        DisciplinaJaVinculadaError,
-        InstituicoesIncompativeisError,
-        MatrizCurricularNaoEncontradaError,
-        MatrizCurricularNaoEditavelError,
-    ) as error:
-        print(f"Não foi possível vincular a disciplina: {error}")
 
 
 if __name__ == "__main__":

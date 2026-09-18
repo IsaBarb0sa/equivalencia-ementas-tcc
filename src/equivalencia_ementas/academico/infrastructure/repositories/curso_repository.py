@@ -31,9 +31,7 @@ class SqlAlchemyCursoRepository:
         curso.atribuir_id(model.curso_id)
 
     def buscar_por_id(self, curso_id: int) -> Curso | None:
-        statement = select(CursoModel).where(
-            CursoModel.curso_id == curso_id
-        )
+        statement = select(CursoModel).where(CursoModel.curso_id == curso_id)
 
         model = self._session.scalar(statement)
 

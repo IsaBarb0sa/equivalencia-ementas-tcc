@@ -36,8 +36,7 @@ class SqlAlchemyMatrizCurricularRepository:
         matriz_curricular_id: int,
     ) -> MatrizCurricular | None:
         statement = select(MatrizCurricularModel).where(
-            MatrizCurricularModel.matriz_curricular_id
-            == matriz_curricular_id
+            MatrizCurricularModel.matriz_curricular_id == matriz_curricular_id
         )
 
         model = self._session.scalar(statement)

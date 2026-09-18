@@ -30,9 +30,7 @@ class SqlAlchemyDisciplinaRepository:
         self,
         disciplina_id: int,
     ) -> Disciplina | None:
-        statement = select(DisciplinaModel).where(
-            DisciplinaModel.disciplina_id == disciplina_id
-        )
+        statement = select(DisciplinaModel).where(DisciplinaModel.disciplina_id == disciplina_id)
 
         model = self._session.scalar(statement)
 

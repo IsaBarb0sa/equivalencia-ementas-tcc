@@ -25,9 +25,7 @@ class CadastrarMatrizCurricular:
             curso = uow.cursos.buscar_por_id(command.curso_id)
 
             if curso is None:
-                raise CursoNaoEncontradoError(
-                    f"Curso {command.curso_id} não encontrado."
-                )
+                raise CursoNaoEncontradoError(f"Curso {command.curso_id} não encontrado.")
 
             matriz = MatrizCurricular(
                 curso_id=command.curso_id,
@@ -40,11 +38,9 @@ class CadastrarMatrizCurricular:
                 status=command.status,
             )
 
-            matriz_existente = (
-                uow.matrizes_curriculares.buscar_por_codigo(
-                    curso_id=matriz.curso_id,
-                    codigo=matriz.codigo,
-                )
+            matriz_existente = uow.matrizes_curriculares.buscar_por_codigo(
+                curso_id=matriz.curso_id,
+                codigo=matriz.codigo,
             )
 
             if matriz_existente is not None:
@@ -57,8 +53,6 @@ class CadastrarMatrizCurricular:
             uow.commit()
 
         if matriz.matriz_curricular_id is None:
-            raise RuntimeError(
-                "O banco não retornou o identificador da matriz."
-            )
+            raise RuntimeError("O banco não retornou o identificador da matriz.")
 
         return matriz.matriz_curricular_id

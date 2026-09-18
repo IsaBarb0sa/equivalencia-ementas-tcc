@@ -12,9 +12,7 @@ def test_deve_criar_instituicao_valida() -> None:
         uf="mg",
     )
 
-    assert instituicao.nome == (
-        "Centro Universitário Presidente Antônio Carlos"
-    )
+    assert instituicao.nome == ("Centro Universitário Presidente Antônio Carlos")
     assert instituicao.sigla == "UNIPAC"
     assert instituicao.uf == "MG"
     assert instituicao.ativa is True

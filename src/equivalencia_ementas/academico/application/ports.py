@@ -7,6 +7,7 @@ from equivalencia_ementas.academico.domain.repositories import (
     InstituicaoRepository,
     MatrizCurricularRepository,
     MatrizDisciplinaRepository,
+    EmentaRepository,
 )
 
 
@@ -16,20 +17,17 @@ class AcademicoUnitOfWork(Protocol):
     disciplinas: DisciplinaRepository
     matrizes_curriculares: MatrizCurricularRepository
     matrizes_disciplinas: MatrizDisciplinaRepository
+    ementas: EmentaRepository
 
-    def __enter__(self) -> Self:
-        ...
+    def __enter__(self) -> Self: ...
 
     def __exit__(
         self,
         exception_type: type[BaseException] | None,
         exception: BaseException | None,
         traceback: TracebackType | None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
-    def commit(self) -> None:
-        ...
+    def commit(self) -> None: ...
 
-    def rollback(self) -> None:
-        ...
+    def rollback(self) -> None: ...
