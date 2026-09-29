@@ -85,7 +85,7 @@ def extrair_segmento(linhas, inicio, fim, numero):
     trecho = linhas[pos:fim]
     dados, evidencias, avisos = vazio(), {}, set()
     dados['disciplina'] = inicio['nome']
-    evidencias['disciplina'] = [fonte(linhas[pos])]
+    evidencias['disciplina'] = [fonte(linhas[i]) for i in inicio.get('fontes_nome', [pos])]
     # Contexto local: nenhum dado da primeira instituição se propaga pelo PDF.
     antes = []
     for linha in reversed(linhas[max(0, pos - 18):pos]):
@@ -98,8 +98,18 @@ def extrair_segmento(linhas, inicio, fim, numero):
     ativo, rodape_pagina, pagina_anterior = None, None, trecho[0]['pagina']
     rotulos = {}
     paginas_usadas = {trecho[0]['pagina']}
+    termino = None
+    ultimo_limite = trecho[-1]
     for linha in trecho:
         t, n = linha['texto'], normalizar(linha['texto'])
+        # No ementário sem rótulo de identidade, um novo capítulo institucional
+        # encerra o último bloco, em vez de anexar o restante do PPC à ementa.
+        if inicio['metodo'] == 'titulo_antes_da_ementa' and re.match(
+            r'^\d+(?:\.\d+)*\s+(?:metodologia de ensino|estrutura administrativa|infraestrutura|avaliacao do curso)\s*$', n):
+            termino = fonte(linha)
+            anteriores = [l for l in trecho if l['indice'] < linha['indice']]
+            ultimo_limite = anteriores[-1] if anteriores else trecho[0]
+            break
         if linha['pagina'] > pagina_anterior + 1:
             ativo = None
             avisos.add('lacuna_de_paginas_interrompeu_continuidade')
@@ -161,7 +171,8 @@ def extrair_segmento(linhas, inicio, fim, numero):
     return {'numero': numero, 'status': 'pendente_revisao', 'dados': dados,
         'identificacao': 'ementa_identificada' if suficiente else 'candidato_inconclusivo',
         'paginas_com_evidencias': sorted(paginas_usadas),
-        'inicio': fonte(trecho[0]), 'fim_do_intervalo': fonte(trecho[-1]),
+        'inicio': fonte(trecho[0]), 'fim_do_intervalo': fonte(ultimo_limite),
+        'encerramento_por_capitulo': termino,
         'metodo_segmentacao': inicio['metodo'], 'avisos': sorted(avisos),
         'evidencias': evidencias, 'rotulos': rotulos, 'carga_horaria_bruta': carga_bruta,
         'criterios': {'identidade': True, 'conteudo_academico': conteudo, 'secoes_auxiliares': auxiliares}}
@@ -194,6 +205,6 @@ def analisar(linhas, paginas):
     usadas = {p for r in registros for p in r['paginas_com_evidencias']}
     return {'classificacao': {'resultado': classe, 'motivo': motivo,
         'sinais_administrativos': sinais, 'paginas_sem_texto_suficiente': sem_texto,
-        'paginas_sem_evidencias_de_ementa': [p['pagina'] for p in paginas if p['pagina'] not in usadas]},
+        'paginas_sem_campos_extraidos': [p['pagina'] for p in paginas if p['pagina'] not in usadas]},
         'ementas': registros, 'candidatos_inconclusivos': inconclusivos,
         'status': 'pendente_revisao', 'gravacao_no_banco_autorizada': False}

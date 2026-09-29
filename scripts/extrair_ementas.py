@@ -9,6 +9,9 @@ import tempfile
 from ementas_extracao.documento import DocumentoRecusado, Limites, inspecionar, ler_linhas
 from ementas_extracao.generico import analisar
 from ementas_extracao.adaptadores import aplicar_perfil_aprendizagem
+from ementas_extracao.tabelas import enriquecer
+from ementas_extracao.cobertura import atualizar_cobertura
+from ementas_extracao.instituicao import identificar
 from ementas_extracao.ocr import ConfigOCR, preparar
 
 
@@ -25,7 +28,10 @@ def processar(origem: Path, config: ConfigOCR, limites: Limites = Limites()):
         linhas, paginas = ler_linhas(entrada)
         auditoria = analisar(linhas, paginas)
         auditoria = aplicar_perfil_aprendizagem(entrada, linhas, auditoria)
-    auditoria.update(documento=documento, versao_extrator='0.4.0', processamento_paginas=processamento)
+        auditoria = enriquecer(entrada, linhas, auditoria)
+        auditoria = identificar(origem, auditoria, config)
+        auditoria = atualizar_cobertura(auditoria, linhas, paginas)
+    auditoria.update(documento=documento, versao_extrator='0.4.4', processamento_paginas=processamento)
     configuracao = asdict(config)
     configuracao['paginas_forcadas'] = sorted(config.paginas_forcadas)
     auditoria['configuracao'] = configuracao
@@ -34,7 +40,7 @@ def processar(origem: Path, config: ConfigOCR, limites: Limites = Limites()):
     # auditoria. Não enviar automaticamente a serviços externos.
     auditoria['linhas'] = linhas
     resultado = {k: auditoria[k] for k in ('documento', 'versao_extrator', 'classificacao', 'status', 'gravacao_no_banco_autorizada')}
-    resultado['ementas'] = [{k: r[k] for k in ('numero', 'status', 'dados', 'paginas_com_evidencias', 'avisos')}
+    resultado['ementas'] = [{k: r[k] for k in ('numero', 'status', 'dados', 'paginas_com_evidencias', 'paginas_com_campos_extraidos', 'avisos')}
                             for r in auditoria['ementas']]
     resultado['quantidade_candidatos_inconclusivos'] = len(auditoria['candidatos_inconclusivos'])
     return resultado, auditoria

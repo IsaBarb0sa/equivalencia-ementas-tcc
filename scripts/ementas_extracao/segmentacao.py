@@ -24,7 +24,7 @@ SECOES = {
 
 
 def cabecalho(texto: str) -> tuple[str, str] | None:
-    texto = re.sub(r'^\s*(?:\d+(?:\.\d+)*\s*[.\-–):]\s*)', '', texto).strip()
+    texto = re.sub(r'^\s*(?:\d+(?:\.\d+)*(?:\s*[.\-–):]\s*|\s+))', '', texto).strip()
     n = normalizar(texto).strip(' :;().')
     for campo, rotulos in SECOES.items():
         for rotulo in rotulos:
@@ -81,6 +81,23 @@ def encontrar_inicios(linhas: list[dict]) -> list[dict]:
                 and ':' not in titulo and len(titulo) <= 140
                 and not re.search(r'\b(?:DOCENTE|HORÁRIA|SEMESTRE|PROFESSOR|BIBLIOGRAFIA|PRÉ.REQUISITO)\b', titulo)):
                 nome, inicio, metodo = titulo, i - 1, 'titulo_antes_da_ementa'
+                # Títulos longos do ementário podem ocupar várias linhas.
+                while inicio > 0:
+                    anterior_titulo = linhas[inicio - 1]
+                    texto_anterior = anterior_titulo['texto']
+                    atual = linhas[inicio]
+                    altura = max(atual['bbox'][3] - atual['bbox'][1], anterior_titulo['bbox'][3] - anterior_titulo['bbox'][1])
+                    centro_atual = (atual['bbox'][0] + atual['bbox'][2]) / 2
+                    centro_anterior = (anterior_titulo['bbox'][0] + anterior_titulo['bbox'][2]) / 2
+                    if (anterior_titulo['pagina'] != linha['pagina'] or not texto_anterior.isupper()
+                        or cabecalho(texto_anterior) or re.search(r'[.;:]', texto_anterior)
+                        or not nome_valido(texto_anterior)
+                        or atual['bbox'][1] - anterior_titulo['bbox'][3] > altura
+                        or abs(centro_atual - centro_anterior) > 2 * altura
+                        or len(texto_anterior + ' ' + nome) > 180):
+                        break
+                    nome = texto_anterior + ' ' + nome
+                    inicio -= 1
         if nome and nome_valido(nome):
             if candidatos and inicio - candidatos[-1]['indice'] < 18:
                 entre = linhas[candidatos[-1]['indice']:inicio]
@@ -96,7 +113,10 @@ def encontrar_inicios(linhas: list[dict]) -> list[dict]:
                 if a == b or codigo_proximo:
                     anterior['repeticoes'].append(i)
                     continue
-            candidatos.append({'indice': inicio, 'nome': nome, 'metodo': metodo, 'repeticoes': []})
+            fontes_nome = list(range(inicio, i)) if metodo == 'titulo_antes_da_ementa' else [i]
+            if metodo != 'titulo_antes_da_ementa' and nome not in t and i+1 < len(linhas):
+                fontes_nome.append(i+1)
+            candidatos.append({'indice': inicio, 'nome': nome, 'metodo': metodo, 'repeticoes': [], 'fontes_nome': fontes_nome})
     return candidatos
 
 

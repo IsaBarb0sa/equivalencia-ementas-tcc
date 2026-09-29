@@ -39,5 +39,5 @@ def aplicar_perfil_aprendizagem(caminho, linhas, analise):
     analise['candidatos_inconclusivos'] = []
     analise['classificacao']['resultado'] = 'contem_ementas'
     analise['classificacao']['motivo'] = 'Perfil estrutural de plano de aprendizagem único, com identidade e conteúdo acadêmico.'
-    analise['classificacao']['paginas_sem_evidencias_de_ementa'] = sorted(set(l['pagina'] for l in linhas) - set(paginas))
+    analise['classificacao']['paginas_sem_campos_extraidos'] = sorted(set(l['pagina'] for l in linhas) - set(paginas))
     return analise

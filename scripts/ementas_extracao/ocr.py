@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import io
 import shutil
+import os
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -56,14 +58,38 @@ def decidir(pagina, config: ConfigOCR, numero: int) -> tuple[bool, str]:
     return False, "Texto digital distribuído apesar de imagem grande; revisar se imagem contém conteúdo adicional" if grande_imagem else "Texto digital disponível, sem imagem grande detectada"
 
 
+@contextmanager
+def ambiente_tessdata(config: ConfigOCR):
+    """Evita aspas literais em argumentos do pytesseract no Windows.
+
+O CLI é sequencial. Um serviço concorrente deve usar processos separados.
+"""
+    if not config.tessdata:
+        yield
+        return
+    pasta = Path(config.tessdata).expanduser().resolve()
+    if not pasta.is_dir():
+        raise RuntimeError(f'Diretório tessdata não encontrado: {pasta}')
+    anterior = os.environ.get('TESSDATA_PREFIX')
+    os.environ['TESSDATA_PREFIX'] = str(pasta)
+    try:
+        yield
+    finally:
+        if anterior is None:
+            os.environ.pop('TESSDATA_PREFIX', None)
+        else:
+            os.environ['TESSDATA_PREFIX'] = anterior
+
+
 def verificar(config: ConfigOCR):
     import pytesseract
     executavel = config.executavel or shutil.which("tesseract")
     if not executavel:
         raise RuntimeError("Tesseract não encontrado. Instale o programa ou informe --tesseract CAMINHO.")
     pytesseract.pytesseract.tesseract_cmd = str(executavel)
-    extra = f'--tessdata-dir "{config.tessdata}"' if config.tessdata else ""
-    instalados = set(pytesseract.get_languages(config=extra))
+    extra = ''
+    with ambiente_tessdata(config):
+        instalados = set(pytesseract.get_languages(config=extra))
     faltantes = set(config.idioma.split("+")) - instalados
     if faltantes:
         raise RuntimeError(f"Idiomas OCR ausentes: {', '.join(sorted(faltantes))}. Instale os arquivos traineddata correspondentes.")
@@ -95,13 +121,15 @@ def reconhecer(imagem, largura: float, altura: float, config: ConfigOCR):
     # Retira linhas da imagem submetida ao OCR, mas preserva sua geometria.
     limpa = 255-mascara
     limpa[cv2.bitwise_or(horizontais,verticais)>0]=255
-    dados_limpos = pytesseract.image_to_data(limpa,lang=config.idioma,
-        config=f"{extra} --psm 3",output_type=pytesseract.Output.DICT,timeout=config.timeout)
+    def ler_dados(imagem_ocr):
+        with ambiente_tessdata(config):
+            return pytesseract.image_to_data(imagem_ocr,lang=config.idioma,
+                config=f"{extra} --psm 3",output_type=pytesseract.Output.DICT,timeout=config.timeout)
+    dados_limpos = ler_dados(limpa)
     # Faixas coloridas com letras claras podem perder títulos na binarização.
     # Comparamos duas leituras da MESMA página por evidências estruturais, sem
     # tratar confiança do OCR como probabilidade de classificação documental.
-    dados_originais = pytesseract.image_to_data(imagem,lang=config.idioma,
-        config=f"{extra} --psm 3",output_type=pytesseract.Output.DICT,timeout=config.timeout)
+    dados_originais = ler_dados(imagem)
     from .segmentacao import cabecalho
     from .documento import normalizar
     def pontuar(d):
