@@ -10,8 +10,14 @@ SECOES = {
     'objetivos.nao_classificados': ('objetivos', 'objetivos da disciplina', 'objetivos de aprendizagem', 'objetivo', 'objetivos da disciplina no curso'),
     'competencias_habilidades': ('competencias e habilidades', 'competencias/habilidades', 'habilidades e competencias',
         'competencias', 'competencias especificas', 'habilidades', 'habilidades a serem desenvolvidas'),
-    'conteudo_programatico': ('conteudo programatico', 'conteudos programaticos', 'conteudo', 'programa', 'unidades de ensino',
-        'estrutura da disciplina', 'conteudo de ensino'),
+     'conteudo_programatico': (
+        'conteudo programatico',
+        'conteudos programaticos',
+        'programa',
+        'unidades de ensino',
+        'estrutura da disciplina',
+        'conteudo de ensino',
+    ),
     'bibliografia.basica': ('bibliografia basica', 'referencias basicas', 'referencia basica', 'bibliografia obrigatoria'),
     'bibliografia.complementar': ('bibliografia complementar', 'referencias complementares', 'referencia complementar'),
     'bibliografia.nao_classificada': ('bibliografia', 'referencias', 'referencias bibliograficas'),
@@ -52,14 +58,100 @@ def limpar_nome(texto: str) -> str:
     texto = re.split(r'\b(?:Carga\s+Hor[aá]ria|Per[ií]odo\s+Letivo|Docente|Professor|Turmas?)\s*:', texto, flags=re.I)[0]
     return re.sub(r'\s+TURMAS?\s*$', '', texto).strip(' |:–-')
 
+def identidade_em_colunas(linhas, indice):
+    """Reconstrói código/nome à direita de um rótulo isolado."""
+    rotulo = linhas[indice]
+
+    if normalizar(rotulo["texto"]).strip(" :") != "codigo/disciplina":
+        return None
+
+    x0, y0, x1, y1 = rotulo["bbox"]
+    altura = max(y1 - y0, 1)
+
+    proximas = [
+        (j, linhas[j])
+        for j in range(
+            max(0, indice - 6),
+            min(len(linhas), indice + 9),
+        )
+        if linhas[j]["pagina"] == rotulo["pagina"]
+    ]
+
+    primeiras = [
+        (j, linha)
+        for j, linha in proximas
+        if linha["bbox"][0] > x1
+        and abs(linha["bbox"][1] - y0) <= 2 * altura
+        and re.match(
+            r"^\d{4,}\s*[-–]\s*\S",
+            linha["texto"],
+        )
+    ]
+
+    # Só associamos quando existe um candidato inequívoco.
+    if len(primeiras) != 1:
+        return None
+
+    j, primeira = primeiras[0]
+    partes = [primeira["texto"]]
+    fontes = [indice, j]
+    ultima = primeira
+
+    for k, linha in sorted(
+        proximas,
+        key=lambda par: par[1]["bbox"][1],
+    ):
+        if k == j or linha["bbox"][1] <= primeira["bbox"][1]:
+            continue
+
+        caixa = linha["bbox"]
+
+        if caixa[0] <= x1:
+            continue
+
+        if caixa[1] > y1 + 2 * altura:
+            break
+
+        texto = linha["texto"].strip()
+
+        if (
+            abs(caixa[0] - primeira["bbox"][0]) > altura
+            or caixa[1] - ultima["bbox"][3] > altura
+            or not texto.isupper()
+            or not nome_valido(texto)
+            or re.match(r"^\d{4,}\s*[-–]", texto)
+        ):
+            break
+
+        partes.append(texto)
+        fontes.append(k)
+        ultima = linha
+
+    nome = limpar_nome(" ".join(partes))
+
+    if not nome_valido(nome):
+        return None
+
+    return nome, min(fontes), sorted(set(fontes))
 
 def encontrar_inicios(linhas: list[dict]) -> list[dict]:
     candidatos = []
     for i, linha in enumerate(linhas):
         t, n = linha['texto'], normalizar(linha['texto'])
         nome, inicio, metodo = None, i, None
+        fontes_colunas = None
+        identidade_colunas = identidade_em_colunas(linhas, i)
         m = IDENTIDADE.match(t)
-        if m:
+
+        if identidade_colunas is not None:
+            nome, inicio, fontes_colunas = identidade_colunas
+            metodo = "identidade_em_colunas"
+
+        elif n.strip(" :") == "codigo/disciplina":
+            # Sem associação segura, não capturar qualquer linha seguinte.
+            continue
+
+        elif m:
             # "A disciplina..." / "disciplina diferencia..." são prosa.
             # Sem delimitador explícito, exigir aparência de rótulo + título.
             prefixo = t[:m.start(1)]
@@ -116,6 +208,8 @@ def encontrar_inicios(linhas: list[dict]) -> list[dict]:
             fontes_nome = list(range(inicio, i)) if metodo == 'titulo_antes_da_ementa' else [i]
             if metodo != 'titulo_antes_da_ementa' and nome not in t and i+1 < len(linhas):
                 fontes_nome.append(i+1)
+            if fontes_colunas is not None:
+                fontes_nome = fontes_colunas
             candidatos.append({'indice': inicio, 'nome': nome, 'metodo': metodo, 'repeticoes': [], 'fontes_nome': fontes_nome})
     return candidatos
 

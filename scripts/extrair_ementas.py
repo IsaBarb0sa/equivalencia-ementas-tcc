@@ -31,7 +31,7 @@ def processar(origem: Path, config: ConfigOCR, limites: Limites = Limites()):
         auditoria = enriquecer(entrada, linhas, auditoria)
         auditoria = identificar(origem, auditoria, config)
         auditoria = atualizar_cobertura(auditoria, linhas, paginas)
-    auditoria.update(documento=documento, versao_extrator='0.4.4', processamento_paginas=processamento)
+    auditoria.update(documento=documento, versao_extrator='0.5.0-dev2', processamento_paginas=processamento)
     configuracao = asdict(config)
     configuracao['paginas_forcadas'] = sorted(config.paginas_forcadas)
     auditoria['configuracao'] = configuracao

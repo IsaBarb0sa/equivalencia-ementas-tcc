@@ -122,7 +122,18 @@ def extrair_segmento(linhas, inicio, fim, numero):
         if ADMINISTRATIVO.match(t):
             ativo = None
             continue
-        if linha['margem_repetida'] or re.fullmatch(r'(?:p[aá]gina\s*:?\s*)?\d+', t, re.I):
+        numero_de_pagina = re.fullmatch(
+            r'(?:p[aá]gina\s*:?\s*)?\d+',
+            t,
+            re.I,
+        )
+
+        margem_sem_secao = (
+                linha['margem_repetida']
+                and cabecalho(t) is None
+        )
+
+        if margem_sem_secao or numero_de_pagina:
             continue
         if INSTITUICAO.match(t) or linha['indice'] in [pos, *inicio['repeticoes']] or n in ('ementa de disciplina', 'plano de ensino', 'ementa - plano de ensino'):
             continue
