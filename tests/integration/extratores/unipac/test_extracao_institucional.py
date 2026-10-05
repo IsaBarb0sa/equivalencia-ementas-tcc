@@ -10,17 +10,17 @@ import sys
 import pytest
 
 
-RAIZ = Path(__file__).resolve().parents[2]
+RAIZ = Path(__file__).resolve().parents[4]
 
 # O extrator ainda está dentro de scripts, fora do pacote em src.
 # Permite importar seus módulos ao executar pytest pela raiz do projeto.
 sys.path.insert(0, str(RAIZ / "scripts"))
 
-from ementas_extracao.estrutural import extrair
-from ementas_extracao.normalizacao import projetar
+from ementas_extracao.extratores.unipac.estrutural import extrair
+from ementas_extracao.extratores.unipac.normalizacao import projetar
 
 
-PASTA_PDFS = RAIZ / "tests" / "fixtures" / "ementas"
+PASTA_PDFS = RAIZ / "tests" / "fixtures" / "ementas" / "unipac"
 
 
 @pytest.fixture(scope="module")

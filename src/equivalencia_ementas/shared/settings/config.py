@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     db_trust_server_certificate: str = "yes"
     db_echo: bool = False
 
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.5-flash-lite"
+
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-5.6-luna"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

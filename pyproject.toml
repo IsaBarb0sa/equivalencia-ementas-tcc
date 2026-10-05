@@ -11,7 +11,12 @@ dependencies = [
     "SQLAlchemy>=2.0,<3.0",
     "pyodbc>=5.0,<6.0",
     "pydantic-settings>=2.0,<3.0",
-    "pdfplumber>=0.11,<1.0"
+    "pdfplumber>=0.11,<1.0",
+    "pypdf>=5,<7",
+    "pytesseract>=0.3.13,<0.4",
+    "pypdfium2>=4,<6",
+    "opencv-python-headless>=4.10,<5",
+    "reportlab>=4,<5"
 ]
 
 [project.optional-dependencies]
@@ -25,7 +30,7 @@ dev = [
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "scripts"]
 testpaths = ["tests"]
 addopts = "-v"
 
