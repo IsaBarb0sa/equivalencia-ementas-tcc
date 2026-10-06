@@ -5,13 +5,20 @@ from pathlib import Path
 from equivalencia_ementas.infraestrutura.ia.cliente_openai import (
     ExtratorOpenAI,
 )
+from equivalencia_ementas.infraestrutura.ia.extracao_com_cache import (
+    ExtracaoComCache,
+)
+
+from equivalencia_ementas.academico.application.normalizar_extracao import (
+    normalizar_extracao,
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Teste de extração estruturada de documentos "
-            "acadêmicos utilizando Gemini."
+            "acadêmicos utilizando OpenAI."
         )
     )
 
@@ -25,7 +32,7 @@ def main() -> None:
 
     print()
     print("=" * 70)
-    print("TESTE DE EXTRAÇÃO POR IA - GEMINI")
+    print("TESTE DE EXTRAÇÃO POR IA - OPENAI")
     print("=" * 70)
     print()
 
@@ -34,7 +41,17 @@ def main() -> None:
 
     extrator = ExtratorOpenAI()
 
-    resultado = extrator.extrair(args.pdf)
+    servico = ExtracaoComCache(
+        extrator=extrator
+    )
+
+    resultado = servico.extrair(
+        args.pdf
+    )
+
+    documento_normalizado = normalizar_extracao(
+        resultado.documento
+    )
 
     print()
     print("=" * 70)
@@ -44,10 +61,29 @@ def main() -> None:
 
     print(
         json.dumps(
-            resultado.model_dump(),
+            documento_normalizado.model_dump(),
             ensure_ascii=False,
             indent=2,
         )
+    )
+
+    print()
+    print("=" * 70)
+    print("USO DA API")
+    print("=" * 70)
+
+    print(f"Modelo: {resultado.modelo}")
+    print(
+        f"Tokens de entrada: "
+        f"{resultado.uso.input_tokens:,}"
+    )
+    print(
+        f"Tokens de saída: "
+        f"{resultado.uso.output_tokens:,}"
+    )
+    print(
+        f"Tokens totais: "
+        f"{resultado.uso.total_tokens:,}"
     )
 
 

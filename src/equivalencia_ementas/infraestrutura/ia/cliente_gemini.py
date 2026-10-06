@@ -57,45 +57,64 @@ REGRAS OBRIGATÓRIAS:
     - conteúdo programático;
     - bibliografia.
 
-11. Diferencie carga horária total, teórica e prática somente quando
-    essa distinção estiver explicitamente presente.
+11. Extraia os dados de carga horária exatamente conforme apresentados
+    no documento.
 
-12. Se somente a carga horária total estiver informada, mantenha
-    carga horária teórica e prática como null.
+12. Quando o documento apresentar apenas uma carga horária total,
+    preencha carga_horaria.total e informe sua unidade em
+    carga_horaria.unidade.
 
-13. Não converta automaticamente hora-aula em hora-relógio.
+13. Quando o documento apresentar explicitamente dois totais diferentes,
+    um em horas-aula e outro em horas-relógio, não escolha apenas um deles.
+    Preencha:
+    - total_hora_aula com o valor em horas-aula;
+    - total_hora_relogio com o valor em horas-relógio;
+    - total como null.
 
-14. Não suponha a duração da hora-aula.
+14. Os campos teorica e pratica representam cargas horárias TOTAIS.
+    Só os preencha quando o documento informar explicitamente a carga
+    horária teórica total ou prática total.
 
-15. Preserve ementa, objetivos e conteúdo programático com a maior
+15. Se valores teóricos e práticos representarem distribuição semanal,
+    utilize teorica_semanal e pratica_semanal.
+
+16. Não interprete automaticamente valores semanais como cargas totais.
+
+17. Não calcule carga horária total multiplicando valores semanais.
+
+18. Não converta hora-aula em hora-relógio.
+
+19. Não suponha a duração da hora-aula.
+
+20. Preserve ementa, objetivos e conteúdo programático com a maior
     fidelidade possível. Não faça resumos desnecessários.
 
-16. Informe as páginas nas quais as informações de cada disciplina
+21. Informe as páginas nas quais as informações de cada disciplina
     foram encontradas.
 
-17. A instituição e o curso devem ser preenchidos somente quando
+22. A instituição e o curso devem ser preenchidos somente quando
     puderem ser identificados no documento.
 
-18. Classifique referências encontradas em seções como:
+23. Classifique referências encontradas em seções como:
     "Bibliografia Básica", "Bibliografia Física Básica",
     "Bibliografia Virtual Básica", "Referências Básicas" ou
     nomenclaturas equivalentes no campo bibliografia.basica.
 
-19. Classifique referências encontradas em seções como:
+24. Classifique referências encontradas em seções como:
     "Bibliografia Complementar", "Bibliografia Física Complementar",
     "Bibliografia Virtual Complementar" ou nomenclaturas equivalentes
     no campo bibliografia.complementar.
 
-20. Utilize bibliografia.nao_classificada apenas quando existirem
+25. Utilize bibliografia.nao_classificada apenas quando existirem
     referências, mas não for possível determinar se são básicas
     ou complementares.
 
-21. Expressões como "não há", "não possui", "não se aplica",
+26. Expressões como "não há", "não possui", "não se aplica",
     "sem bibliografia" ou equivalentes representam ausência de
     bibliografia. Nesses casos, mantenha os campos correspondentes dentro
     do objeto bibliografia como null.
 
-22. Preserve as referências bibliográficas encontradas sem criar
+27. Preserve as referências bibliográficas encontradas sem criar
     informações que não estejam no documento.
 
 PRIORIDADE:
@@ -116,6 +135,75 @@ PROCEDIMENTO DE LEITURA:
 - Use a posição da página no PDF, começando em 1, em paginas_origem.
 - Antes de responder, confira se todos os nomes explícitos encontrados
   estão representados na lista disciplinas, mesmo sem outros dados.
+  
+  Quando uma tabela possuir colunas separadas para carga horária semanal
+TEÓRICA, PRÁTICA e TOTAL:
+
+- preencha teorica_semanal somente com o valor da coluna TEÓRICA;
+- preencha pratica_semanal somente com o valor da coluna PRÁTICA;
+- não copie o valor da coluna TOTAL para teorica_semanal ou pratica_semanal;
+- se a célula da coluna TEÓRICA ou PRÁTICA estiver vazia, mantenha o
+  campo correspondente como null;
+- quando existir uma coluna TOTAL referente à distribuição semanal,
+  armazene esse valor em carga_horaria.total_semanal;
+- nunca armazene o TOTAL semanal em carga_horaria.total;
+- carga_horaria.total representa somente a carga horária TOTAL da
+  disciplina quando o documento apresenta um único total global e
+  não distingue hora-aula de hora-relógio.
+- não deduza a carga prática pela diferença entre total e teórica,
+  nem a carga teórica pela diferença entre total e prática.
+
+Exemplo:
+
+TEÓRICA semanal = 4
+PRÁTICA semanal = vazio
+TOTAL semanal = 4
+TOTAL em hora-aula = 72
+TOTAL em hora-relógio = 60
+
+deve resultar em:
+
+total = null
+total_hora_aula = 72
+total_hora_relogio = 60
+teorica_semanal = 4
+pratica_semanal = null
+total_semanal = 4
+
+IDENTIFICAÇÃO DO CONTEXTO DA DISCIPLINA:
+
+Para cada disciplina encontrada, classifique tipo_ocorrencia como:
+
+- CURRICULAR:
+  quando a disciplina fizer parte de uma matriz curricular, grade,
+  ementário, plano de ensino ou conjunto de disciplinas apresentado
+  como pertencente ao curso analisado.
+
+- HISTORICA:
+  quando a disciplina aparecer explicitamente como pertencente a
+  matriz anterior, currículo antigo, versão anterior ou estrutura
+  curricular substituída.
+
+- COMPARATIVA:
+  quando a disciplina aparecer apenas em tabela ou seção destinada
+  a comparação, equivalência, alteração, migração ou correspondência
+  entre matrizes/componentes curriculares.
+
+- MENCAO:
+  quando o nome da disciplina for apenas citado no texto, sem ser
+  apresentado como componente curricular daquele conjunto.
+
+- INDETERMINADA:
+  quando o documento não fornecer contexto suficiente para classificar
+  com segurança.
+
+Não transforme disciplinas históricas, comparativas ou simples menções
+em disciplinas curriculares atuais.
+
+Não deduza vigência apenas pela posição da página.
+
+Uma mesma disciplina pode aparecer em mais de um contexto.
+Preserve cada ocorrência com a classificação correspondente.
 
 FORMATO DA RESPOSTA:
 Retorne explicitamente instituicao, curso, disciplinas e
@@ -139,6 +227,10 @@ class ExtratorGemini:
         self._cliente = genai.Client(
             api_key=settings.gemini_api_key
         )
+
+    @property
+    def modelo(self) -> str:
+        return self._modelo
 
     def extrair(
         self,

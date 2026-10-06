@@ -40,3 +40,7 @@ git
 
 /tests/fixtures/ementas/**/*.pdf
 /tests/fixtures/ementas/*.pdf
+
+data/extracoes_ia/
+
+data/resultados_gemini/

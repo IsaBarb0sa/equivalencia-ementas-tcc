@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import tempfile
 import unicodedata
@@ -10,14 +12,17 @@ from pypdf import PdfReader, PdfWriter
 from equivalencia_ementas.infraestrutura.ia.cliente_gemini import (
     ExtratorGemini,
 )
+
 from equivalencia_ementas.infraestrutura.ia.modelos_extracao import (
     BibliografiaExtraida,
     CargaHorariaExtraida,
     DisciplinaExtraida,
     DocumentoAcademicoExtraido,
     ObjetivosExtraidos,
+    TipoOcorrenciaDisciplina,
 )
 
+VERSAO_CACHE_GEMINI = "3"
 
 class ProcessadorDocumentoIA:
     def __init__(
@@ -25,12 +30,17 @@ class ProcessadorDocumentoIA:
         extrator: ExtratorGemini,
         tamanho_bloco: int = 25,
         sobreposicao: int = 5,
+        pasta_cache: Path = Path("data/cache_gemini_blocos"),
     ) -> None:
         if tamanho_bloco <= 0:
-            raise ValueError("tamanho_bloco deve ser maior que zero.")
+            raise ValueError(
+                "tamanho_bloco deve ser maior que zero."
+            )
 
         if sobreposicao < 0:
-            raise ValueError("sobreposicao não pode ser negativa.")
+            raise ValueError(
+                "sobreposicao não pode ser negativa."
+            )
 
         if sobreposicao >= tamanho_bloco:
             raise ValueError(
@@ -40,6 +50,12 @@ class ProcessadorDocumentoIA:
         self._extrator = extrator
         self._tamanho_bloco = tamanho_bloco
         self._sobreposicao = sobreposicao
+        self._pasta_cache = pasta_cache
+
+        self._pasta_cache.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
     def processar(
         self,
@@ -54,6 +70,9 @@ class ProcessadorDocumentoIA:
 
         reader = PdfReader(str(caminho_pdf))
         total_paginas = len(reader.pages)
+        hash_documento = self._calcular_hash(
+            caminho_pdf
+        )
 
         print(f"Total de páginas: {total_paginas}")
         print(
@@ -84,26 +103,49 @@ class ProcessadorDocumentoIA:
                     f"{inicio + 1}-{fim}..."
                 )
 
-                caminho_bloco = (
-                    pasta_temp
-                    / f"bloco_{inicio + 1}_{fim}.pdf"
-                )
-
-                self._criar_pdf_bloco(
-                    reader=reader,
+                caminho_cache = self._caminho_cache_bloco(
+                    hash_documento=hash_documento,
                     inicio=inicio,
                     fim=fim,
-                    destino=caminho_bloco,
                 )
 
-                resultado = self._extrator.extrair(
-                    caminho_bloco
-                )
+                if caminho_cache.exists():
+                    print("    Resultado encontrado no cache.")
 
-                self._corrigir_paginas(
-                    resultado=resultado,
-                    deslocamento=inicio,
-                )
+                    resultado = self._carregar_cache_bloco(
+                        caminho_cache
+                    )
+
+                else:
+                    caminho_bloco = (
+                            pasta_temp
+                            / f"bloco_{inicio + 1}_{fim}.pdf"
+                    )
+
+                    self._criar_pdf_bloco(
+                        reader=reader,
+                        inicio=inicio,
+                        fim=fim,
+                        destino=caminho_bloco,
+                    )
+
+                    resultado = self._extrator.extrair(
+                        caminho_bloco
+                    )
+
+                    self._corrigir_paginas(
+                        resultado=resultado,
+                        deslocamento=inicio,
+                    )
+
+                    self._salvar_cache_bloco(
+                        caminho_cache=caminho_cache,
+                        caminho_pdf=caminho_pdf,
+                        hash_documento=hash_documento,
+                        inicio=inicio,
+                        fim=fim,
+                        resultado=resultado,
+                    )
 
                 resultados.append(resultado)
 
@@ -196,11 +238,37 @@ class ProcessadorDocumentoIA:
 
         observacoes_documento: list[str] = []
 
+
+        paginas_nao_curriculares_por_chave: dict[
+            str,
+            set[int],
+        ] = {}
+
+        for resultado in resultados:
+            for disciplina in resultado.disciplinas:
+                if disciplina.tipo_ocorrencia in {
+                    TipoOcorrenciaDisciplina.HISTORICA,
+                    TipoOcorrenciaDisciplina.COMPARATIVA,
+                    TipoOcorrenciaDisciplina.MENCAO,
+                }:
+                    chave = self._normalizar_nome(
+                        disciplina.nome
+                    )
+
+                    paginas = (
+                        paginas_nao_curriculares_por_chave
+                        .setdefault(chave, set())
+                    )
+
+                    paginas.update(
+                        pagina
+                        for pagina in disciplina.paginas_origem
+                        if pagina > 0
+                    )
+
         for resultado in resultados:
 
-            for observacao in (
-                resultado.observacoes_documento
-            ):
+            for observacao in resultado.observacoes_documento:
                 if observacao not in observacoes_documento:
                     observacoes_documento.append(
                         observacao
@@ -211,6 +279,38 @@ class ProcessadorDocumentoIA:
                 chave = self._normalizar_nome(
                     disciplina.nome
                 )
+
+                if disciplina.tipo_ocorrencia in {
+                    TipoOcorrenciaDisciplina.HISTORICA,
+                    TipoOcorrenciaDisciplina.COMPARATIVA,
+                    TipoOcorrenciaDisciplina.MENCAO,
+                }:
+                    continue
+
+                paginas_nao_curriculares = (
+                    paginas_nao_curriculares_por_chave.get(
+                        chave,
+                        set(),
+                    )
+                )
+
+                paginas_disciplina = {
+                    pagina
+                    for pagina in disciplina.paginas_origem
+                    if pagina > 0
+                }
+
+                if (
+                    paginas_disciplina
+                    and paginas_nao_curriculares
+                    and paginas_disciplina.issubset(
+                        paginas_nao_curriculares
+                    )
+                    and not self._tem_evidencia_curricular_forte(
+                        disciplina
+                    )
+                ):
+                    continue
 
                 existente = disciplinas_por_chave.get(
                     chave
@@ -230,6 +330,11 @@ class ProcessadorDocumentoIA:
         disciplinas = list(
             disciplinas_por_chave.values()
         )
+
+        for disciplina in disciplinas:
+            self._validar_carga_horaria_semanal(
+                disciplina
+            )
 
         disciplinas.sort(
             key=lambda d: (
@@ -286,6 +391,17 @@ class ProcessadorDocumentoIA:
                 nova.nome,
             ),
 
+            tipo_ocorrencia=(
+                TipoOcorrenciaDisciplina.CURRICULAR
+                if (
+                        atual.tipo_ocorrencia
+                        == TipoOcorrenciaDisciplina.CURRICULAR
+                        or nova.tipo_ocorrencia
+                        == TipoOcorrenciaDisciplina.CURRICULAR
+                )
+                else atual.tipo_ocorrencia
+            ),
+
             carga_horaria=self._mesclar_carga_horaria(
                 atual.carga_horaria,
                 nova.carga_horaria,
@@ -329,40 +445,202 @@ class ProcessadorDocumentoIA:
             ),
         )
 
-    @staticmethod
+    @classmethod
     def _mesclar_carga_horaria(
-        atual: CargaHorariaExtraida,
-        nova: CargaHorariaExtraida,
+            cls,
+            atual: CargaHorariaExtraida,
+            nova: CargaHorariaExtraida,
     ) -> CargaHorariaExtraida:
 
+        if cls._cargas_conflitam(atual, nova):
+            # Em caso de conflito, não mistura os campos.
+            # Mantém o registro de carga horária mais completo.
+            if cls._pontuacao_carga_horaria(nova) > cls._pontuacao_carga_horaria(atual):
+                return nova
+
+            return atual
+
+        total_hora_aula = (
+            atual.total_hora_aula
+            if atual.total_hora_aula is not None
+            else nova.total_hora_aula
+        )
+
+        total_hora_relogio = (
+            atual.total_hora_relogio
+            if atual.total_hora_relogio is not None
+            else nova.total_hora_relogio
+        )
+
+        total = (
+            atual.total
+            if atual.total is not None
+            else nova.total
+        )
+
+        # Se possuímos explicitamente os dois tipos de total,
+        # o campo genérico "total" deixa de ser necessário.
+        if (
+                total_hora_aula is not None
+                and total_hora_relogio is not None
+        ):
+            total = None
+
         return CargaHorariaExtraida(
-            total=(
-                atual.total
-                if atual.total is not None
-                else nova.total
-            ),
+            total=total,
+
+            total_hora_aula=total_hora_aula,
+
+            total_hora_relogio=total_hora_relogio,
+
             teorica=(
                 atual.teorica
                 if atual.teorica is not None
                 else nova.teorica
             ),
+
             pratica=(
                 atual.pratica
                 if atual.pratica is not None
                 else nova.pratica
             ),
+
+            teorica_semanal=(
+                atual.teorica_semanal
+                if atual.teorica_semanal is not None
+                else nova.teorica_semanal
+            ),
+
+            pratica_semanal=(
+                atual.pratica_semanal
+                if atual.pratica_semanal is not None
+                else nova.pratica_semanal
+            ),
+
+            total_semanal=(
+                atual.total_semanal
+                if atual.total_semanal is not None
+                else nova.total_semanal
+            ),
+
             unidade=(
                 atual.unidade
                 if atual.unidade
                 else nova.unidade
             ),
+
             duracao_hora_aula_minutos=(
                 atual.duracao_hora_aula_minutos
-                if atual.duracao_hora_aula_minutos
-                is not None
+                if atual.duracao_hora_aula_minutos is not None
                 else nova.duracao_hora_aula_minutos
             ),
         )
+
+    @staticmethod
+    def _pontuacao_carga_horaria(
+            carga: CargaHorariaExtraida,
+    ) -> int:
+        pontuacao = 0
+
+        # Totais explicitamente tipados têm prioridade
+        # sobre um total genérico.
+        if carga.total_hora_aula is not None:
+            pontuacao += 3
+
+        if carga.total_hora_relogio is not None:
+            pontuacao += 3
+
+        if carga.total is not None:
+            pontuacao += 1
+
+        if carga.teorica is not None:
+            pontuacao += 2
+
+        if carga.pratica is not None:
+            pontuacao += 2
+
+        if carga.teorica_semanal is not None:
+            pontuacao += 1
+
+        if carga.pratica_semanal is not None:
+            pontuacao += 1
+
+        if carga.total_semanal is not None:
+            pontuacao += 1
+
+        if carga.unidade:
+            pontuacao += 1
+
+        if carga.duracao_hora_aula_minutos is not None:
+            pontuacao += 1
+
+        return pontuacao
+
+    @staticmethod
+    def _cargas_conflitam(
+            atual: CargaHorariaExtraida,
+            nova: CargaHorariaExtraida,
+    ) -> bool:
+
+        campos_diretos = (
+            "total_hora_aula",
+            "total_hora_relogio",
+            "teorica",
+            "pratica",
+            "teorica_semanal",
+            "pratica_semanal",
+            "total_semanal",
+            "duracao_hora_aula_minutos",
+        )
+
+        for campo in campos_diretos:
+            valor_atual = getattr(atual, campo)
+            valor_novo = getattr(nova, campo)
+
+            if (
+                    valor_atual is not None
+                    and valor_novo is not None
+                    and valor_atual != valor_novo
+            ):
+                return True
+
+        # total genérico contra total genérico
+        if (
+                atual.total is not None
+                and nova.total is not None
+                and atual.total != nova.total
+        ):
+            return True
+
+        # Um bloco pode trazer somente "total",
+        # enquanto outro identifica hora-aula/hora-relógio.
+        # É compatível somente se o total genérico corresponder
+        # a pelo menos um dos totais explicitamente informados.
+        pares = (
+            (atual.total, nova),
+            (nova.total, atual),
+        )
+
+        for total_generico, outra in pares:
+            if total_generico is None:
+                continue
+
+            totais_especificos = [
+                valor
+                for valor in (
+                    outra.total_hora_aula,
+                    outra.total_hora_relogio,
+                )
+                if valor is not None
+            ]
+
+            if (
+                    totais_especificos
+                    and total_generico not in totais_especificos
+            ):
+                return True
+
+        return False
 
     def _mesclar_objetivos(
         self,
@@ -449,3 +727,148 @@ class ProcessadorDocumentoIA:
                 return valor
 
         return None
+
+    @staticmethod
+    def _calcular_hash(
+        caminho_pdf: Path,
+    ) -> str:
+        sha256 = hashlib.sha256()
+
+        with caminho_pdf.open("rb") as arquivo:
+            while bloco := arquivo.read(1024 * 1024):
+                sha256.update(bloco)
+
+        return sha256.hexdigest()
+
+    def _caminho_cache_bloco(
+        self,
+        hash_documento: str,
+        inicio: int,
+        fim: int,
+    ) -> Path:
+        nome = (
+            f"{hash_documento}"
+            f"__{self._extrator.modelo}"
+            f"__v{VERSAO_CACHE_GEMINI}"
+            f"__pag_{inicio + 1}_{fim}.json"
+        )
+
+        return self._pasta_cache / nome
+
+    def _salvar_cache_bloco(
+        self,
+        caminho_cache: Path,
+        caminho_pdf: Path,
+        hash_documento: str,
+        inicio: int,
+        fim: int,
+        resultado: DocumentoAcademicoExtraido,
+    ) -> None:
+        dados = {
+            "arquivo": caminho_pdf.name,
+            "sha256": hash_documento,
+            "modelo": self._extrator.modelo,
+            "versao_cache": VERSAO_CACHE_GEMINI,
+            "pagina_inicial": inicio + 1,
+            "pagina_final": fim,
+            "resultado": resultado.model_dump(),
+        }
+
+        caminho_cache.write_text(
+            json.dumps(
+                dados,
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def _carregar_cache_bloco(
+        caminho_cache: Path,
+    ) -> DocumentoAcademicoExtraido:
+        dados = json.loads(
+            caminho_cache.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        return DocumentoAcademicoExtraido.model_validate(
+            dados["resultado"]
+        )
+
+    @staticmethod
+    def _tem_evidencia_curricular_forte(
+            disciplina: DisciplinaExtraida,
+    ) -> bool:
+        return any(
+            (
+                disciplina.ementa,
+                disciplina.conteudo_programatico,
+                disciplina.competencias_habilidades,
+                disciplina.objetivos.geral,
+                disciplina.objetivos.especificos,
+                disciplina.objetivos.nao_classificados,
+                disciplina.bibliografia.basica,
+                disciplina.bibliografia.complementar,
+                disciplina.bibliografia.nao_classificada,
+            )
+        )
+
+    @staticmethod
+    def _validar_carga_horaria_semanal(
+            disciplina: DisciplinaExtraida,
+    ) -> None:
+        carga = disciplina.carga_horaria
+
+        teorica = carga.teorica_semanal
+        pratica = carga.pratica_semanal
+        total = carga.total_semanal
+
+        if total is None:
+            return
+
+        inconsistente = False
+
+        if (
+                teorica is not None
+                and pratica is not None
+                and teorica + pratica != total
+        ):
+            inconsistente = True
+
+        elif (
+                teorica is not None
+                and teorica > total
+        ):
+            inconsistente = True
+
+        elif (
+                pratica is not None
+                and pratica > total
+        ):
+            inconsistente = True
+
+        if not inconsistente:
+            return
+
+        # O total semanal é preservado porque foi
+        # explicitamente extraído do documento.
+        #
+        # Como não é possível determinar com segurança
+        # qual componente semanal está incorreto,
+        # evitamos escolher entre teórica e prática.
+        carga.teorica_semanal = None
+        carga.pratica_semanal = None
+
+        observacao = (
+            "Carga horária semanal inconsistente na extração: "
+            "os valores de carga teórica/prática não foram "
+            "preservados porque não são compatíveis com o "
+            "total semanal informado."
+        )
+
+        if observacao not in disciplina.observacoes:
+            disciplina.observacoes.append(
+                observacao
+            )

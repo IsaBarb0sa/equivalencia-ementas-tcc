@@ -3,11 +3,29 @@ from pathlib import Path
 
 from openai import OpenAI
 
+from equivalencia_ementas.shared.settings.config import get_settings
+
+from dataclasses import dataclass
+
 from equivalencia_ementas.infraestrutura.ia.modelos_extracao import (
     DocumentoAcademicoExtraido,
 )
-from equivalencia_ementas.shared.settings.config import get_settings
 
+
+@dataclass
+class UsoOpenAI:
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+
+VERSAO_EXTRACAO = "2"
+
+@dataclass
+class ResultadoOpenAI:
+    documento: DocumentoAcademicoExtraido
+    uso: UsoOpenAI
+    modelo: str
+    versao_extracao: str
 
 INSTRUCOES_EXTRACAO = """
 Você é um componente de extração estruturada de documentos acadêmicos.
@@ -32,16 +50,34 @@ Regras obrigatórias:
    - ementa;
    - conteúdo programático;
    - bibliografia.
-9. Diferencie carga horária total, teórica e prática apenas quando isso
-   estiver explicitamente informado.
-10. Não converta automaticamente hora-aula em hora-relógio.
-11. Não suponha a duração da hora-aula.
-12. Preserve os textos acadêmicos com fidelidade.
-13. Informe as páginas de origem das informações.
-14. Instituição e curso somente devem ser preenchidos quando houver
-    evidência no documento.
-15. É preferível retornar uma disciplina parcialmente preenchida do que
-    deixar de retornar uma disciplina existente.
+9. Extraia os dados de carga horária exatamente conforme apresentados
+   no documento.
+
+10. Quando o documento apresentar apenas uma carga horária total,
+    preencha carga_horaria.total e informe sua unidade em
+    carga_horaria.unidade.
+
+11. Quando o documento apresentar explicitamente dois totais diferentes,
+    um em horas-aula e outro em horas-relógio, não escolha apenas um deles.
+    Preencha:
+    - total_hora_aula com o valor em horas-aula;
+    - total_hora_relogio com o valor em horas-relógio;
+    - total como null.
+
+12. Os campos teorica e pratica representam cargas horárias TOTAIS.
+    Só os preencha quando o documento informar explicitamente a carga
+    horária teórica total ou prática total.
+
+13. Se valores teóricos e práticos representarem distribuição semanal,
+    utilize teorica_semanal e pratica_semanal.
+
+14. Não interprete automaticamente valores semanais como cargas totais.
+
+15. Não calcule carga horária total multiplicando valores semanais.
+
+16. Não converta hora-aula em hora-relógio.
+
+17. Não suponha a duração da hora-aula.
 """
 
 
@@ -59,6 +95,10 @@ class ExtratorOpenAI:
         self._cliente = OpenAI(
             api_key=settings.openai_api_key
         )
+
+    @property
+    def modelo(self) -> str:
+        return self._modelo
 
     def extrair(
         self,
@@ -114,4 +154,15 @@ class ExtratorOpenAI:
                 "A OpenAI não retornou um resultado estruturado."
             )
 
-        return resultado
+        uso = resposta.usage
+
+        return ResultadoOpenAI(
+            documento=resultado,
+            uso=UsoOpenAI(
+                input_tokens=uso.input_tokens if uso else 0,
+                output_tokens=uso.output_tokens if uso else 0,
+                total_tokens=uso.total_tokens if uso else 0,
+            ),
+            modelo=self._modelo,
+            versao_extracao=VERSAO_EXTRACAO,
+        )
