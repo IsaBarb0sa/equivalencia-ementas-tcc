@@ -19,8 +19,8 @@ def test_desconhecido_diferente_de_zero():
 
 
 @pytest.mark.parametrize('kwargs',[
-    {'carga_horaria_teorica':-1}, {'carga_horaria_pratica':81},
-    {'carga_horaria_teorica':50,'carga_horaria_pratica':40},
+    {'carga_horaria_teorica':-1}, {'carga_horaria_pratica':81, 'unidade_carga_pratica':UnidadeCargaHoraria.HORA},
+    {'carga_horaria_teorica':50,'carga_horaria_pratica':40, 'unidade_carga_teorica':UnidadeCargaHoraria.HORA, 'unidade_carga_pratica':UnidadeCargaHoraria.HORA},
     {'carga_horaria_teorica':Decimal('NaN')},
     {'carga_horaria_pratica':Decimal('1.001')},
     {'unidade_carga_horaria':UnidadeCargaHoraria.NAO_INFO,'carga_horaria_normalizada_min':4800},

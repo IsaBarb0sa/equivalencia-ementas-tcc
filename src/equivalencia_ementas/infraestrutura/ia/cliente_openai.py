@@ -18,7 +18,7 @@ class UsoOpenAI:
     output_tokens: int
     total_tokens: int
 
-VERSAO_EXTRACAO = "2"
+VERSAO_EXTRACAO = "3"
 
 @dataclass
 class ResultadoOpenAI:
@@ -27,58 +27,9 @@ class ResultadoOpenAI:
     modelo: str
     versao_extracao: str
 
-INSTRUCOES_EXTRACAO = """
-Você é um componente de extração estruturada de documentos acadêmicos.
-
-Analise integralmente o PDF fornecido e identifique todas as disciplinas
-ou componentes curriculares presentes.
-
-Regras obrigatórias:
-
-1. Extraia somente informações explicitamente presentes no documento.
-2. Não invente, estime ou complete informações ausentes.
-3. Quando uma informação estiver ausente, utilize null.
-4. O documento pode possuir uma ou várias disciplinas.
-5. Preserve uma disciplina mesmo que possua somente nome e carga horária.
-6. Não descarte disciplinas por ausência de ementa, objetivos ou bibliografia.
-7. Não misture informações pertencentes a disciplinas diferentes.
-8. Extraia, quando disponíveis:
-   - nome da disciplina;
-   - carga horária;
-   - objetivos;
-   - competências e habilidades;
-   - ementa;
-   - conteúdo programático;
-   - bibliografia.
-9. Extraia os dados de carga horária exatamente conforme apresentados
-   no documento.
-
-10. Quando o documento apresentar apenas uma carga horária total,
-    preencha carga_horaria.total e informe sua unidade em
-    carga_horaria.unidade.
-
-11. Quando o documento apresentar explicitamente dois totais diferentes,
-    um em horas-aula e outro em horas-relógio, não escolha apenas um deles.
-    Preencha:
-    - total_hora_aula com o valor em horas-aula;
-    - total_hora_relogio com o valor em horas-relógio;
-    - total como null.
-
-12. Os campos teorica e pratica representam cargas horárias TOTAIS.
-    Só os preencha quando o documento informar explicitamente a carga
-    horária teórica total ou prática total.
-
-13. Se valores teóricos e práticos representarem distribuição semanal,
-    utilize teorica_semanal e pratica_semanal.
-
-14. Não interprete automaticamente valores semanais como cargas totais.
-
-15. Não calcule carga horária total multiplicando valores semanais.
-
-16. Não converta hora-aula em hora-relógio.
-
-17. Não suponha a duração da hora-aula.
-"""
+from equivalencia_ementas.infraestrutura.ia.instrucoes_extracao import (
+    INSTRUCOES_EXTRACAO,
+)
 
 
 class ExtratorOpenAI:

@@ -72,16 +72,26 @@ def validar(form):
     unidades={'HORA':'HORA','hora_relogio':'HORA','HORA_AULA':'HORA_AULA','hora_aula':'HORA_AULA',
         'CREDITO':'CREDITO','credito':'CREDITO','NAO_INFO':'NAO_INFO','nao_identificada':'NAO_INFO',
         'nao_declarada':'NAO_INFO','hora_declarada':'NAO_INFO'}
-    unidade=unidades.get(carga.get('unidade'))
+    unidade=unidades.get(carga.get('unidade') or 'NAO_INFO')
     if unidade is None:raise ValueError('Unidade não reconhecida. Use HORA, HORA_AULA, CREDITO ou NAO_INFO.')
-    total=decimal(carga.get('total'),'carga total',True)
+    total=decimal(carga.get('total'),'carga total')
     t=decimal(carga.get('teorica'),'carga teórica');p=decimal(carga.get('pratica'),'carga prática')
     duracao=carga.get('duracao_hora_aula_minutos')
-    if duracao is not None and (type(duracao) is not int or unidade!='HORA_AULA'):
-        raise ValueError('Duração só se aplica a HORA_AULA e deve ser um inteiro.')
+    if duracao is not None and type(duracao) is not int:
+        raise ValueError('Duração deve ser um inteiro.')
     e=Ementa(disciplina_id=1,versao=c['versao_ementa'].strip(),carga_horaria_declarada=total,
         carga_horaria_teorica=t,carga_horaria_pratica=p,unidade_carga_horaria=UnidadeCargaHoraria(unidade),
-        duracao_hora_aula_minutos=duracao,resumo=d['ementa'],
+        duracao_hora_aula_minutos=duracao,resumo=d.get('ementa'),
+        carga_horaria_total_hora_aula=decimal(carga.get('total_hora_aula'),'carga_horaria_total_hora_aula'),
+        carga_horaria_total_hora_relogio=decimal(carga.get('total_hora_relogio'),'carga_horaria_total_hora_relogio'),
+        carga_horaria_teorica_semanal=decimal(carga.get('teorica_semanal'),'carga_horaria_teorica_semanal'),
+        carga_horaria_pratica_semanal=decimal(carga.get('pratica_semanal'),'carga_horaria_pratica_semanal'),
+        carga_horaria_total_semanal=decimal(carga.get('total_semanal'),'carga_horaria_total_semanal'),
+        unidade_carga_teorica=UnidadeCargaHoraria(unidades.get(carga.get('unidade_teorica') or 'NAO_INFO', 'INVALIDA')),
+        unidade_carga_pratica=UnidadeCargaHoraria(unidades.get(carga.get('unidade_pratica') or 'NAO_INFO', 'INVALIDA')),
+        unidade_carga_teorica_semanal=UnidadeCargaHoraria(unidades.get(carga.get('unidade_teorica_semanal') or 'NAO_INFO', 'INVALIDA')),
+        unidade_carga_pratica_semanal=UnidadeCargaHoraria(unidades.get(carga.get('unidade_pratica_semanal') or 'NAO_INFO', 'INVALIDA')),
+        unidade_carga_total_semanal=UnidadeCargaHoraria(unidades.get(carga.get('unidade_total_semanal') or 'NAO_INFO', 'INVALIDA')),
         competencias_habilidades=d.get('competencias_habilidades'),status=StatusEmenta.EM_REVISAO)
     # Identificador provisório só valida a entidade; substituído pelo ID real na infraestrutura.
     return e

@@ -77,6 +77,9 @@ class SqlAlchemyImportacaoResultado:
             existente=session.execute(bloquear(select(e.c.EmentaId).where(e.c.DisciplinaId==disc,
                 e.c.MatrizDisciplinaId.is_(None),e.c.Versao==entidade.versao),e)).first()
             if existente:raise ValueError('Já existe ementa dessa disciplina, sem matriz e com a mesma versão. Não foi sobrescrita.')
+            esperadas = ['CargaHorariaTotalHoraAula', 'CargaHorariaTotalHoraRelogio', 'CargaHorariaTeoricaSemanal', 'CargaHorariaPraticaSemanal', 'CargaHorariaTotalSemanal', 'UnidadeCargaTeorica', 'UnidadeCargaPratica', 'UnidadeCargaTeoricaSemanal', 'UnidadeCargaPraticaSemanal', 'UnidadeCargaTotalSemanal']
+            if any(nome not in e.c for nome in esperadas):
+                raise ValueError('Aplique a migration 004 antes de importar ou simular.')
             # Refletir dependências também na simulação para detectar migration ausente.
             objetivos=self.tabela(session,meta,'ObjetivoEmenta')
             bibliografia=self.tabela(session,meta,'Bibliografia')
@@ -88,10 +91,20 @@ class SqlAlchemyImportacaoResultado:
                 DocumentoFonteId=row['DocumentoFonteId'],Versao=entidade.versao,Idioma='pt-BR',
                 Resumo=entidade.resumo,CargaHorariaDeclarada=entidade.carga_horaria_declarada,
                 CargaHorariaTeorica=entidade.carga_horaria_teorica,CargaHorariaPratica=entidade.carga_horaria_pratica,
+                CargaHorariaTotalHoraAula=entidade.carga_horaria_total_hora_aula,
+                CargaHorariaTotalHoraRelogio=entidade.carga_horaria_total_hora_relogio,
+                CargaHorariaTeoricaSemanal=entidade.carga_horaria_teorica_semanal,
+                CargaHorariaPraticaSemanal=entidade.carga_horaria_pratica_semanal,
+                CargaHorariaTotalSemanal=entidade.carga_horaria_total_semanal,
+                UnidadeCargaTeorica=entidade.unidade_carga_teorica.value,
+                UnidadeCargaPratica=entidade.unidade_carga_pratica.value,
+                UnidadeCargaTeoricaSemanal=entidade.unidade_carga_teorica_semanal.value,
+                UnidadeCargaPraticaSemanal=entidade.unidade_carga_pratica_semanal.value,
+                UnidadeCargaTotalSemanal=entidade.unidade_carga_total_semanal.value,
                 CompetenciasHabilidades=entidade.competencias_habilidades,
                 UnidadeCargaHoraria=entidade.unidade_carga_horaria.value,
                 DuracaoHoraAulaMinutos=entidade.duracao_hora_aula_minutos,
-                CargaHorariaNormalizadaMin=None,Status='EM_REVISAO')).inserted_primary_key[0]
+                CargaHorariaNormalizadaMin=entidade.carga_horaria_normalizada_min,Status='EM_REVISAO')).inserted_primary_key[0]
             session.execute(vinculo.insert().values(EmentaId=ementa_id,CursoId=curso))
             ordem=0
             for campo,tipo in [('geral','GERAL'),('especificos','ESPECIFICO'),('nao_classificados','NAO_CLASSIF')]:

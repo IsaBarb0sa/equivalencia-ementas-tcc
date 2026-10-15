@@ -9,9 +9,10 @@ from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 
-from equivalencia_ementas.infraestrutura.ia.cliente_gemini import (
-    ExtratorGemini,
-)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from equivalencia_ementas.infraestrutura.ia.cliente_gemini import ExtratorGemini
 
 from equivalencia_ementas.infraestrutura.ia.modelos_extracao import (
     BibliografiaExtraida,
@@ -22,7 +23,7 @@ from equivalencia_ementas.infraestrutura.ia.modelos_extracao import (
     TipoOcorrenciaDisciplina,
 )
 
-VERSAO_CACHE_GEMINI = "3"
+VERSAO_CACHE_GEMINI = "12"
 
 class ProcessadorDocumentoIA:
     def __init__(
@@ -330,11 +331,7 @@ class ProcessadorDocumentoIA:
         disciplinas = list(
             disciplinas_por_chave.values()
         )
-
-        for disciplina in disciplinas:
-            self._validar_carga_horaria_semanal(
-                disciplina
-            )
+        disciplinas = self._reconciliar_titulos(disciplinas)
 
         disciplinas.sort(
             key=lambda d: (
@@ -385,6 +382,15 @@ class ProcessadorDocumentoIA:
         nova: DisciplinaExtraida,
     ) -> DisciplinaExtraida:
 
+        observacoes_carga = []
+        if self._cargas_conflitam(atual.carga_horaria, nova.carga_horaria):
+            observacoes_carga.append(
+                "Cargas divergentes ou com unidades incompatíveis entre blocos; "
+                "mantido um registro inteiro para revisão. Originais: "
+                + json.dumps([atual.carga_horaria.model_dump(),
+                              nova.carga_horaria.model_dump()], ensure_ascii=False)
+            )
+
         return DisciplinaExtraida(
             nome=self._preferir_texto(
                 atual.nome,
@@ -422,7 +428,7 @@ class ProcessadorDocumentoIA:
                 nova.ementa,
             ),
 
-            conteudo_programatico=self._preferir_texto(
+            conteudo_programatico=self._mesclar_conteudo_programatico(
                 atual.conteudo_programatico,
                 nova.conteudo_programatico,
             ),
@@ -441,206 +447,46 @@ class ProcessadorDocumentoIA:
 
             observacoes=self._mesclar_listas(
                 atual.observacoes,
-                nova.observacoes,
+                nova.observacoes + observacoes_carga,
             ),
         )
 
     @classmethod
     def _mesclar_carga_horaria(
-            cls,
-            atual: CargaHorariaExtraida,
-            nova: CargaHorariaExtraida,
+        cls, atual: CargaHorariaExtraida, nova: CargaHorariaExtraida,
     ) -> CargaHorariaExtraida:
-
         if cls._cargas_conflitam(atual, nova):
-            # Em caso de conflito, não mistura os campos.
-            # Mantém o registro de carga horária mais completo.
-            if cls._pontuacao_carga_horaria(nova) > cls._pontuacao_carga_horaria(atual):
-                return nova
-
-            return atual
-
-        total_hora_aula = (
-            atual.total_hora_aula
-            if atual.total_hora_aula is not None
-            else nova.total_hora_aula
-        )
-
-        total_hora_relogio = (
-            atual.total_hora_relogio
-            if atual.total_hora_relogio is not None
-            else nova.total_hora_relogio
-        )
-
-        total = (
-            atual.total
-            if atual.total is not None
-            else nova.total
-        )
-
-        # Se possuímos explicitamente os dois tipos de total,
-        # o campo genérico "total" deixa de ser necessário.
-        if (
-                total_hora_aula is not None
-                and total_hora_relogio is not None
-        ):
-            total = None
-
-        return CargaHorariaExtraida(
-            total=total,
-
-            total_hora_aula=total_hora_aula,
-
-            total_hora_relogio=total_hora_relogio,
-
-            teorica=(
-                atual.teorica
-                if atual.teorica is not None
-                else nova.teorica
-            ),
-
-            pratica=(
-                atual.pratica
-                if atual.pratica is not None
-                else nova.pratica
-            ),
-
-            teorica_semanal=(
-                atual.teorica_semanal
-                if atual.teorica_semanal is not None
-                else nova.teorica_semanal
-            ),
-
-            pratica_semanal=(
-                atual.pratica_semanal
-                if atual.pratica_semanal is not None
-                else nova.pratica_semanal
-            ),
-
-            total_semanal=(
-                atual.total_semanal
-                if atual.total_semanal is not None
-                else nova.total_semanal
-            ),
-
-            unidade=(
-                atual.unidade
-                if atual.unidade
-                else nova.unidade
-            ),
-
-            duracao_hora_aula_minutos=(
-                atual.duracao_hora_aula_minutos
-                if atual.duracao_hora_aula_minutos is not None
-                else nova.duracao_hora_aula_minutos
-            ),
-        )
+            # Não montar uma carga artificial com valores incompatíveis.
+            escolhida = (nova if cls._pontuacao_carga_horaria(nova)
+                         > cls._pontuacao_carga_horaria(atual) else atual)
+            return escolhida.model_copy(deep=True)
+        return CargaHorariaExtraida(**{
+            campo: (getattr(atual, campo) if getattr(atual, campo) is not None
+                    else getattr(nova, campo))
+            for campo in ("total", "teorica", "pratica", "unidade")
+        })
 
     @staticmethod
-    def _pontuacao_carga_horaria(
-            carga: CargaHorariaExtraida,
-    ) -> int:
-        pontuacao = 0
-
-        # Totais explicitamente tipados têm prioridade
-        # sobre um total genérico.
-        if carga.total_hora_aula is not None:
-            pontuacao += 3
-
-        if carga.total_hora_relogio is not None:
-            pontuacao += 3
-
-        if carga.total is not None:
-            pontuacao += 1
-
-        if carga.teorica is not None:
-            pontuacao += 2
-
-        if carga.pratica is not None:
-            pontuacao += 2
-
-        if carga.teorica_semanal is not None:
-            pontuacao += 1
-
-        if carga.pratica_semanal is not None:
-            pontuacao += 1
-
-        if carga.total_semanal is not None:
-            pontuacao += 1
-
-        if carga.unidade:
-            pontuacao += 1
-
-        if carga.duracao_hora_aula_minutos is not None:
-            pontuacao += 1
-
-        return pontuacao
+    def _pontuacao_carga_horaria(carga: CargaHorariaExtraida) -> int:
+        return sum(getattr(carga, c) is not None
+                   for c in ("total", "teorica", "pratica", "unidade"))
 
     @staticmethod
-    def _cargas_conflitam(
-            atual: CargaHorariaExtraida,
-            nova: CargaHorariaExtraida,
-    ) -> bool:
-
-        campos_diretos = (
-            "total_hora_aula",
-            "total_hora_relogio",
-            "teorica",
-            "pratica",
-            "teorica_semanal",
-            "pratica_semanal",
-            "total_semanal",
-            "duracao_hora_aula_minutos",
-        )
-
-        for campo in campos_diretos:
-            valor_atual = getattr(atual, campo)
-            valor_novo = getattr(nova, campo)
-
-            if (
-                    valor_atual is not None
-                    and valor_novo is not None
-                    and valor_atual != valor_novo
-            ):
+    def _cargas_conflitam(atual: CargaHorariaExtraida,
+                         nova: CargaHorariaExtraida) -> bool:
+        campos = ("total", "teorica", "pratica")
+        tem_atual = any(getattr(atual, c) is not None for c in campos)
+        tem_nova = any(getattr(nova, c) is not None for c in campos)
+        # Unidade de outro bloco não deve ser atribuída a números sem evidência.
+        if atual.unidade != nova.unidade:
+            if tem_atual and tem_nova:
                 return True
-
-        # total genérico contra total genérico
-        if (
-                atual.total is not None
-                and nova.total is not None
-                and atual.total != nova.total
-        ):
-            return True
-
-        # Um bloco pode trazer somente "total",
-        # enquanto outro identifica hora-aula/hora-relógio.
-        # É compatível somente se o total genérico corresponder
-        # a pelo menos um dos totais explicitamente informados.
-        pares = (
-            (atual.total, nova),
-            (nova.total, atual),
-        )
-
-        for total_generico, outra in pares:
-            if total_generico is None:
-                continue
-
-            totais_especificos = [
-                valor
-                for valor in (
-                    outra.total_hora_aula,
-                    outra.total_hora_relogio,
-                )
-                if valor is not None
-            ]
-
-            if (
-                    totais_especificos
-                    and total_generico not in totais_especificos
-            ):
+            if tem_atual and atual.unidade is None and nova.unidade is not None:
                 return True
-
-        return False
+            if tem_nova and nova.unidade is None and atual.unidade is not None:
+                return True
+        return any(getattr(atual, c) is not None and getattr(nova, c) is not None
+                   and getattr(atual, c) != getattr(nova, c) for c in campos)
 
     def _mesclar_objetivos(
         self,
@@ -683,6 +529,21 @@ class ProcessadorDocumentoIA:
                 nova.nao_classificada,
             ),
         )
+
+    @staticmethod
+    def _mesclar_conteudo_programatico(atual: str | None, novo: str | None) -> str | None:
+        # O prompt retorna um tema por linha. Preservar temas de todos os blocos,
+        # em vez de escolher somente o texto mais longo e perder continuações.
+        linhas = []
+        vistos = set()
+        for texto in (atual, novo):
+            for linha in (texto or "").splitlines():
+                linha = linha.strip()
+                chave = " ".join(linha.casefold().split()).rstrip(".;")
+                if chave and chave not in vistos:
+                    vistos.add(chave)
+                    linhas.append(linha)
+        return "\n".join(linhas) or None
 
     @staticmethod
     def _preferir_texto(
@@ -816,59 +677,114 @@ class ProcessadorDocumentoIA:
         )
 
     @staticmethod
-    def _validar_carga_horaria_semanal(
-            disciplina: DisciplinaExtraida,
-    ) -> None:
-        carga = disciplina.carga_horaria
+    def _retirar_codigo_inicial(nome: str) -> str:
+        # Ex.: "NF2 - Título" ou "INF101: Título".
+        # Não remove números finais nem palavras do título.
+        return re.sub(
+            r"^\s*[A-Za-z]{1,10}\s*\d+\s*[-–—:]\s*",
+            "",
+            nome,
+        ).strip()
 
-        teorica = carga.teorica_semanal
-        pratica = carga.pratica_semanal
-        total = carga.total_semanal
+    def _reconciliar_titulos(
+        self, disciplinas: list[DisciplinaExtraida],
+    ) -> list[DisciplinaExtraida]:
+        grupos: dict[str, list[DisciplinaExtraida]] = {}
 
-        if total is None:
-            return
+        for original in disciplinas:
+            disciplina = original.model_copy(deep=True)
+            titulo = self._retirar_codigo_inicial(disciplina.nome)
+            chave = self._normalizar_nome(titulo)
+            grupos.setdefault(chave, []).append(disciplina)
 
-        inconsistente = False
+        saida: list[DisciplinaExtraida] = []
 
-        if (
-                teorica is not None
-                and pratica is not None
-                and teorica + pratica != total
-        ):
-            inconsistente = True
+        for chave, grupo in grupos.items():
+            if len(grupo) == 1:
+                saida.extend(grupo)
+                continue
 
-        elif (
-                teorica is not None
-                and teorica > total
-        ):
-            inconsistente = True
+            motivo = None
 
-        elif (
-                pratica is not None
-                and pratica > total
-        ):
-            inconsistente = True
-
-        if not inconsistente:
-            return
-
-        # O total semanal é preservado porque foi
-        # explicitamente extraído do documento.
-        #
-        # Como não é possível determinar com segurança
-        # qual componente semanal está incorreto,
-        # evitamos escolher entre teórica e prática.
-        carga.teorica_semanal = None
-        carga.pratica_semanal = None
-
-        observacao = (
-            "Carga horária semanal inconsistente na extração: "
-            "os valores de carga teórica/prática não foram "
-            "preservados porque não são compatíveis com o "
-            "total semanal informado."
-        )
-
-        if observacao not in disciplina.observacoes:
-            disciplina.observacoes.append(
-                observacao
+            # Esses títulos dependem de contexto: eixo, módulo, matriz.
+            generico = re.match(
+                r"^(extensao|atividade|atividades|optativa|optativo|"
+                r"eletiva|eletivo|estagio|topicos especiais)\b",
+                chave,
             )
+
+            if generico:
+                motivo = "Título dependente de contexto curricular."
+
+            elif len(grupo) != 2:
+                motivo = "Mais de duas ocorrências candidatas à associação."
+
+            else:
+                a, b = grupo
+
+                sem_codigo = [
+                    d for d in grupo
+                    if self._retirar_codigo_inicial(d.nome) == d.nome.strip()
+                ]
+
+                if len(sem_codigo) != 1:
+                    motivo = (
+                        "Não há um único título sem código para associação."
+                    )
+
+                elif a.tipo_ocorrencia != b.tipo_ocorrencia:
+                    motivo = "Classificações de ocorrência diferentes."
+
+                elif self._cargas_conflitam(
+                    a.carga_horaria, b.carga_horaria
+                ):
+                    motivo = (
+                        "Cargas horárias divergentes ou unidades incompatíveis."
+                    )
+
+                else:
+                    for campo in ("ementa", "conteudo_programatico"):
+                        x = getattr(a, campo)
+                        y = getattr(b, campo)
+
+                        if (
+                            x and y
+                            and self._normalizar_nome(x)
+                            != self._normalizar_nome(y)
+                        ):
+                            motivo = (
+                                "Textos diferentes; confirmar a identidade."
+                            )
+                            break
+
+                if motivo is None:
+                    unido = self._mesclar_disciplinas(a, b)
+                    unido.nome = sem_codigo[0].nome.strip()
+
+                    unido.observacoes = self._mesclar_listas(
+                        unido.observacoes,
+                        [
+                            "Associação por título idêntico após retirar código "
+                            f"inicial: {a.nome!r} / {b.nome!r}. "
+                            "Confirmar o contexto curricular na revisão."
+                        ],
+                    )
+
+                    saida.append(unido)
+                    continue
+
+            aviso = (
+                "Possível duplicidade não unificada: "
+                f"{' / '.join(d.nome for d in grupo)}. {motivo}"
+            )
+
+            for disciplina in grupo:
+                disciplina.observacoes = self._mesclar_listas(
+                    disciplina.observacoes,
+                    [aviso],
+                )
+
+            saida.extend(grupo)
+
+        return saida
+

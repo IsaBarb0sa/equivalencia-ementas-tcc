@@ -16,8 +16,8 @@ from equivalencia_ementas.academico.domain.entities import (
     ModalidadeCurso,
     NaturezaDisciplina,
     NivelCurso,
-    NivelCurso,
     StatusMatrizCurricular,
+    StatusEmenta,
     UnidadeCargaHoraria,
 )
 
@@ -64,7 +64,7 @@ class VincularDisciplinaMatrizCommand:
 class CadastrarEmentaCommand:
     disciplina_id: int
     versao: str
-    carga_horaria_declarada: Decimal
+    carga_horaria_declarada: Decimal | None = None
     matriz_disciplina_id: int | None = None
     idioma: str = "pt-BR"
     ano_vigencia: int | None = None
@@ -72,7 +72,19 @@ class CadastrarEmentaCommand:
     resumo: str | None = None
     unidade_carga_horaria: UnidadeCargaHoraria = UnidadeCargaHoraria.HORA
     duracao_hora_aula_minutos: int | None = None
-    carga_horaria_normalizada_min: int | None = None
+    carga_horaria_normalizada_min: Decimal | None = None
     carga_horaria_teorica: Decimal | None = None
     carga_horaria_pratica: Decimal | None = None
     competencias_habilidades: str | None = None
+    carga_horaria_total_hora_aula: Decimal | None = None
+    carga_horaria_total_hora_relogio: Decimal | None = None
+    carga_horaria_teorica_semanal: Decimal | None = None
+    carga_horaria_pratica_semanal: Decimal | None = None
+    carga_horaria_total_semanal: Decimal | None = None
+    unidade_carga_teorica: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_pratica: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_teorica_semanal: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_pratica_semanal: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_total_semanal: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+
+    status: StatusEmenta = StatusEmenta.EM_REVISAO

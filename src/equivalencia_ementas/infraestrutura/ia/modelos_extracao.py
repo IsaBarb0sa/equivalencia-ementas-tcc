@@ -2,84 +2,15 @@ from pydantic import BaseModel, Field
 from enum import StrEnum
 
 class CargaHorariaExtraida(BaseModel):
-    total: float | None = Field(
-        default=None,
-        description=(
-            "Carga horária total quando o documento apresenta "
-            "apenas um único total."
-        ),
-    )
-
-
-    total_hora_aula: float | None = Field(
-        default=None,
-        description=(
-            "Carga horária total expressa explicitamente em horas-aula."
-        ),
-    )
-
-    total_hora_relogio: float | None = Field(
-        default=None,
-        description=(
-            "Carga horária total expressa explicitamente em horas-relógio."
-        ),
-    )
-
-    teorica: float | None = Field(
-        default=None,
-        description=(
-            "Carga horária teórica TOTAL da disciplina, "
-            "somente quando explicitamente informada."
-        ),
-    )
-
-    pratica: float | None = Field(
-        default=None,
-        description=(
-            "Carga horária prática TOTAL da disciplina, "
-            "somente quando explicitamente informada."
-        ),
-    )
-
-    teorica_semanal: float | None = Field(
-        default=None,
-        description=(
-            "Quantidade semanal de horas ou aulas teóricas, "
-            "somente quando explicitamente apresentada como semanal."
-        ),
-    )
-
-    pratica_semanal: float | None = Field(
-        default=None,
-        description=(
-            "Quantidade semanal de horas ou aulas práticas, "
-            "somente quando explicitamente apresentada como semanal."
-        ),
-    )
-
-    total_semanal: float | None = Field(
-        default=None,
-        description=(
-            "Carga horária semanal total, somente quando "
-            "explicitamente apresentada como semanal."
-        ),
-    )
-
-    unidade: str | None = Field(
-        default=None,
-        description=(
-            "Unidade usada no campo total, por exemplo "
-            "HORA ou HORA_AULA."
-        ),
-    )
-
-    duracao_hora_aula_minutos: int | None = Field(
-        default=None,
-        description=(
-            "Duração da hora-aula em minutos, somente quando "
-            "explicitamente informada."
-        ),
-    )
+    # Valores totais da disciplina; nunca aulas ou horas por semana.
+    total: float | None = Field(default=None, ge=0, allow_inf_nan=False,
+        description="Carga total explícita da disciplina. Nunca carga semanal.")
+    teorica: float | None = Field(default=None, ge=0, allow_inf_nan=False,
+        description="Carga teórica total explícita; não calcular por diferença.")
+    pratica: float | None = Field(default=None, ge=0, allow_inf_nan=False,
+        description="Carga prática total explícita; não calcular por diferença.")
+    unidade: str | None = Field(default=None,
+        description="Unidade comum aos valores: HORA, HORA_AULA ou CREDITO, se explícita; caso contrário null. Não converter valores.")
 
 
 class ObjetivosExtraidos(BaseModel):

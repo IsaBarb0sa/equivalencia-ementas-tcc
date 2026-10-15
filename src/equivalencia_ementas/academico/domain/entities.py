@@ -333,7 +333,7 @@ class UnidadeCargaHoraria(str, Enum):
 class Ementa:
     disciplina_id: int
     versao: str
-    carga_horaria_declarada: Decimal
+    carga_horaria_declarada: Decimal | None = None
     matriz_disciplina_id: int | None = None
     documento_fonte_id: int | None = None
     idioma: str = "pt-BR"
@@ -342,7 +342,7 @@ class Ementa:
     resumo: str | None = None
     unidade_carga_horaria: UnidadeCargaHoraria = UnidadeCargaHoraria.HORA
     duracao_hora_aula_minutos: int | None = None
-    carga_horaria_normalizada_min: int | None = None
+    carga_horaria_normalizada_min: Decimal | None = None
     status: StatusEmenta = StatusEmenta.RASCUNHO
     confianca_parsing: Decimal | None = None
     publicada_em: datetime | None = None
@@ -350,6 +350,17 @@ class Ementa:
     carga_horaria_teorica: Decimal | None = None
     carga_horaria_pratica: Decimal | None = None
     competencias_habilidades: str | None = None
+    carga_horaria_total_hora_aula: Decimal | None = None
+    carga_horaria_total_hora_relogio: Decimal | None = None
+    carga_horaria_teorica_semanal: Decimal | None = None
+    carga_horaria_pratica_semanal: Decimal | None = None
+    carga_horaria_total_semanal: Decimal | None = None
+    unidade_carga_teorica: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_pratica: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_teorica_semanal: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_pratica_semanal: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+    unidade_carga_total_semanal: UnidadeCargaHoraria = UnidadeCargaHoraria.NAO_INFO
+
 
     def __post_init__(self) -> None:
         self.versao = self.versao.strip()
@@ -358,7 +369,7 @@ class Ementa:
         self.competencias_habilidades = _normalizar_texto_opcional(self.competencias_habilidades)
         self.unidade_carga_horaria = UnidadeCargaHoraria(self.unidade_carga_horaria)
 
-        self.carga_horaria_declarada = Decimal(str(self.carga_horaria_declarada))
+        self.status = StatusEmenta(self.status)
 
         if self.confianca_parsing is not None:
             self.confianca_parsing = Decimal(str(self.confianca_parsing))
@@ -404,50 +415,81 @@ class Ementa:
             raise ValueError("O semestre de vigência deve ser 1 ou 2.")
 
     def _validar_carga_horaria(self) -> None:
-        if not self.carga_horaria_declarada.is_finite():
-            raise ValueError("A carga horária declarada deve ser finita.")
-        for campo in ("carga_horaria_teorica", "carga_horaria_pratica"):
+        campos = (
+            "carga_horaria_declarada", "carga_horaria_teorica", "carga_horaria_pratica",
+            "carga_horaria_total_hora_aula", "carga_horaria_total_hora_relogio",
+            "carga_horaria_teorica_semanal", "carga_horaria_pratica_semanal",
+            "carga_horaria_total_semanal",
+        )
+        for campo in campos:
             valor = getattr(self, campo)
             if valor is None:
                 continue
+            if isinstance(valor, bool):
+                raise ValueError(f"{campo}: número inválido.")
             valor = Decimal(str(valor))
-            if (not valor.is_finite() or valor < 0
-                    or valor > self.carga_horaria_declarada
+            if (not valor.is_finite() or not 0 <= valor <= Decimal("999999.99")
                     or valor != valor.quantize(Decimal("0.01"))):
-                raise ValueError(f"{campo} deve estar entre zero e o total, com até duas casas decimais.")
+                raise ValueError(f"{campo}: use valor finito, não negativo, com até duas casas.")
+            if campo in ("carga_horaria_declarada", "carga_horaria_total_hora_aula",
+                         "carga_horaria_total_hora_relogio") and valor == 0:
+                raise ValueError("A carga horária declarada deve ser maior que zero.")
             setattr(self, campo, valor)
-        if (self.carga_horaria_teorica is not None and self.carga_horaria_pratica is not None
-                and self.carga_horaria_teorica + self.carga_horaria_pratica
-                > self.carga_horaria_declarada):
-            raise ValueError("A soma das cargas teórica e prática não pode exceder o total.")
-        if self.unidade_carga_horaria == UnidadeCargaHoraria.NAO_INFO and (
-            self.carga_horaria_normalizada_min is not None
-            or self.duracao_hora_aula_minutos is not None
+        for nome in ("teorica", "pratica", "teorica_semanal", "pratica_semanal", "total_semanal"):
+            campo = f"unidade_carga_{nome}"
+            setattr(self, campo, UnidadeCargaHoraria(getattr(self, campo)))
+        duracao = self.duracao_hora_aula_minutos
+        if duracao is not None and (type(duracao) is not int or not 30 <= duracao <= 120):
+            raise ValueError("A duração da hora-aula deve estar entre 30 e 120 minutos.")
+        # Só confrontar componentes cuja unidade é conhecida e igual à do total.
+        totais = [(self.carga_horaria_declarada, self.unidade_carga_horaria),
+                  (self.carga_horaria_total_hora_aula, UnidadeCargaHoraria.HORA_AULA),
+                  (self.carga_horaria_total_hora_relogio, UnidadeCargaHoraria.HORA)]
+        for total, unidade in totais:
+            self._validar_componentes(total, unidade, "teorica", "pratica")
+        self._validar_componentes(self.carga_horaria_total_semanal,
+                                 self.unidade_carga_total_semanal,
+                                 "teorica_semanal", "pratica_semanal")
+        calculado = self.calcular_carga_normalizada()
+        if self.carga_horaria_normalizada_min is not None:
+            informado = Decimal(str(self.carga_horaria_normalizada_min))
+            if not informado.is_finite() or calculado is None or informado != calculado:
+                raise ValueError("Carga normalizada sem evidência suficiente ou incompatível.")
+        self.carga_horaria_normalizada_min = calculado
+
+    def _validar_componentes(self, total, unidade, *nomes) -> None:
+        if total is None or unidade == UnidadeCargaHoraria.NAO_INFO:
+            return
+        valores = [getattr(self, f"carga_horaria_{nome}") for nome in nomes
+                   if getattr(self, f"unidade_carga_{nome}") == unidade
+                   and getattr(self, f"carga_horaria_{nome}") is not None]
+        if sum(valores, Decimal(0)) > total:
+            raise ValueError("A soma das cargas componentes não pode exceder o total compatível.")
+
+    def calcular_carga_normalizada(self) -> Decimal | None:
+        for explicito, unidade in (
+            (self.carga_horaria_total_hora_aula, UnidadeCargaHoraria.HORA_AULA),
+            (self.carga_horaria_total_hora_relogio, UnidadeCargaHoraria.HORA),
         ):
-            raise ValueError("Unidade desconhecida não permite normalização de carga horária.")
-        if self.carga_horaria_declarada <= Decimal("0"):
-            raise ValueError("A carga horária declarada deve ser maior que zero.")
-
-        if self.carga_horaria_declarada > Decimal("999999.99"):
-            raise ValueError("A carga horária declarada ultrapassa o limite permitido.")
-
-        if self.duracao_hora_aula_minutos is not None:
-            if not 30 <= self.duracao_hora_aula_minutos <= 120:
-                raise ValueError("A duração da hora-aula deve estar entre 30 e 120 minutos.")
-
-        if (
-            self.unidade_carga_horaria == UnidadeCargaHoraria.HORA_AULA
-            and self.duracao_hora_aula_minutos is None
+            if (self.carga_horaria_declarada is not None and explicito is not None
+                    and self.unidade_carga_horaria == unidade
+                    and self.carga_horaria_declarada != explicito):
+                return None
+        valores = []
+        for total, unidade in (
+            (self.carga_horaria_declarada, self.unidade_carga_horaria),
+            (self.carga_horaria_total_hora_aula, UnidadeCargaHoraria.HORA_AULA),
+            (self.carga_horaria_total_hora_relogio, UnidadeCargaHoraria.HORA),
         ):
-            raise ValueError(
-                "A duração da hora-aula deve ser informada quando a unidade for HORA_AULA."
-            )
-
-        if (
-            self.carga_horaria_normalizada_min is not None
-            and self.carga_horaria_normalizada_min <= 0
-        ):
-            raise ValueError("A carga horária normalizada deve ser maior que zero.")
+            fator = (60 if unidade == UnidadeCargaHoraria.HORA else
+                     self.duracao_hora_aula_minutos
+                     if unidade == UnidadeCargaHoraria.HORA_AULA else None)
+            if total is not None and fator is not None:
+                valores.append(total * fator)
+        # Não presumir semanas, duração de aula ou tolerância de arredondamento.
+        if not valores or any(v != valores[0] for v in valores):
+            return None
+        return valores[0]
 
     def _validar_processamento(self) -> None:
         if self.confianca_parsing is None:
@@ -457,6 +499,8 @@ class Ementa:
             raise ValueError("A confiança do parsing deve estar entre zero e um.")
 
     def _validar_publicacao(self) -> None:
+        if self.status == StatusEmenta.PUBLICADA and self.calcular_carga_normalizada() is None:
+            raise ValueError("Publicação exige carga horária total normalizável e consistente.")
         if (self.status == StatusEmenta.PUBLICADA
                 and self.unidade_carga_horaria == UnidadeCargaHoraria.NAO_INFO):
             raise ValueError("Não é possível publicar uma ementa com unidade desconhecida.")
@@ -467,6 +511,8 @@ class Ementa:
         self._validar_carga_horaria()
         if self.unidade_carga_horaria == UnidadeCargaHoraria.NAO_INFO:
             raise ValueError("Não é possível publicar uma ementa com unidade desconhecida.")
+        if self.calcular_carga_normalizada() is None:
+            raise ValueError("Publicação exige carga horária total normalizável e consistente.")
         if not self.resumo:
             raise ValueError("Não é possível publicar uma ementa sem texto.")
 

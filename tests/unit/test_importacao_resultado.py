@@ -23,7 +23,7 @@ def banco():
     '''CREATE TABLE academico.Instituicao(InstituicaoId INTEGER PRIMARY KEY AUTOINCREMENT,Codigo TEXT UNIQUE,Nome TEXT,Ativa BOOLEAN)''',
     '''CREATE TABLE academico.Curso(CursoId INTEGER PRIMARY KEY AUTOINCREMENT,InstituicaoId INTEGER,Codigo TEXT,Nome TEXT,Nivel TEXT,Modalidade TEXT,Ativo BOOLEAN,UNIQUE(InstituicaoId,Codigo))''',
     '''CREATE TABLE academico.Disciplina(DisciplinaId INTEGER PRIMARY KEY AUTOINCREMENT,InstituicaoId INTEGER,Codigo TEXT,Nome TEXT,Ativa BOOLEAN,UNIQUE(InstituicaoId,Codigo))''',
-    '''CREATE TABLE academico.Ementa(EmentaId INTEGER PRIMARY KEY AUTOINCREMENT,DisciplinaId INTEGER,MatrizDisciplinaId INTEGER,DocumentoFonteId INTEGER,Versao TEXT,Idioma TEXT,Resumo TEXT,CargaHorariaDeclarada NUMERIC,CargaHorariaTeorica NUMERIC,CargaHorariaPratica NUMERIC,CompetenciasHabilidades TEXT,UnidadeCargaHoraria TEXT,DuracaoHoraAulaMinutos INTEGER,CargaHorariaNormalizadaMin INTEGER,Status TEXT)''',
+    '''CREATE TABLE academico.Ementa(EmentaId INTEGER PRIMARY KEY AUTOINCREMENT,DisciplinaId INTEGER,MatrizDisciplinaId INTEGER,DocumentoFonteId INTEGER,Versao TEXT,Idioma TEXT,Resumo TEXT,CargaHorariaDeclarada NUMERIC,CargaHorariaTeorica NUMERIC,CargaHorariaPratica NUMERIC,CompetenciasHabilidades TEXT,UnidadeCargaHoraria TEXT,DuracaoHoraAulaMinutos INTEGER,CargaHorariaNormalizadaMin NUMERIC,Status TEXT,CargaHorariaTotalHoraAula NUMERIC,CargaHorariaTotalHoraRelogio NUMERIC,CargaHorariaTeoricaSemanal NUMERIC,CargaHorariaPraticaSemanal NUMERIC,CargaHorariaTotalSemanal NUMERIC,UnidadeCargaTeorica TEXT,UnidadeCargaPratica TEXT,UnidadeCargaTeoricaSemanal TEXT,UnidadeCargaPraticaSemanal TEXT,UnidadeCargaTotalSemanal TEXT)''',
     '''CREATE TABLE academico.EmentaCurso(EmentaId INTEGER,CursoId INTEGER,PRIMARY KEY(EmentaId,CursoId))''',
     '''CREATE TABLE academico.ObjetivoEmenta(ObjetivoEmentaId INTEGER PRIMARY KEY AUTOINCREMENT,EmentaId INTEGER,Ordem INTEGER,Tipo TEXT,Texto TEXT)''',
     '''CREATE TABLE academico.ConteudoProgramatico(ConteudoProgramaticoId INTEGER PRIMARY KEY AUTOINCREMENT,EmentaId INTEGER,Ordem INTEGER,TextoOriginal TEXT)''',
@@ -136,9 +136,7 @@ def test_reutiliza_cadastros(banco):
     lambda f:f['cadastro'].update(curso_modalidade='SEM_DADO'),
     lambda f:f['dados']['carga_horaria'].update(total=0),
     lambda f:f['dados']['carga_horaria'].update(total=float('nan')),
-    lambda f:f['dados']['carga_horaria'].update(teorica=50),
     lambda f:f['dados']['carga_horaria'].update(pratica=-1),
-    lambda f:f['dados']['carga_horaria'].update(unidade='HORA_AULA'),
 ])
 def test_bloqueia_revisao_invalida(banco,alteracao):
     engine,caso=banco;f=formulario(caso);alteracao(f)

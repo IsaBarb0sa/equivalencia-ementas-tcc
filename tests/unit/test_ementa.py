@@ -68,17 +68,10 @@ def test_deve_rejeitar_semestre_invalido() -> None:
         )
 
 
-def test_deve_exigir_duracao_quando_unidade_for_hora_aula() -> None:
-    with pytest.raises(
-        ValueError,
-        match="duração da hora-aula deve ser informada",
-    ):
-        Ementa(
-            disciplina_id=1,
-            versao="2019/2",
-            carga_horaria_declarada=Decimal("40"),
-            unidade_carga_horaria=UnidadeCargaHoraria.HORA_AULA,
-        )
+def test_aceita_hora_aula_sem_duracao() -> None:
+    e = Ementa(disciplina_id=1, versao="v1", carga_horaria_declarada=Decimal("40"),
+               unidade_carga_horaria=UnidadeCargaHoraria.HORA_AULA)
+    assert e.carga_horaria_normalizada_min is None
 
 
 def test_deve_rejeitar_confianca_de_parsing_invalida() -> None:

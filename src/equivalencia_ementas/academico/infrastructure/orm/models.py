@@ -453,10 +453,21 @@ class EmentaModel(Base):
         nullable=True,
     )
 
-    carga_horaria_declarada: Mapped[Decimal] = mapped_column(
+    carga_horaria_total_hora_aula: Mapped[Decimal | None] = mapped_column("CargaHorariaTotalHoraAula", Numeric(8, 2), nullable=True)
+    carga_horaria_total_hora_relogio: Mapped[Decimal | None] = mapped_column("CargaHorariaTotalHoraRelogio", Numeric(8, 2), nullable=True)
+    carga_horaria_teorica_semanal: Mapped[Decimal | None] = mapped_column("CargaHorariaTeoricaSemanal", Numeric(8, 2), nullable=True)
+    carga_horaria_pratica_semanal: Mapped[Decimal | None] = mapped_column("CargaHorariaPraticaSemanal", Numeric(8, 2), nullable=True)
+    carga_horaria_total_semanal: Mapped[Decimal | None] = mapped_column("CargaHorariaTotalSemanal", Numeric(8, 2), nullable=True)
+    unidade_carga_teorica: Mapped[str] = mapped_column("UnidadeCargaTeorica", String(10), nullable=False, default="NAO_INFO")
+    unidade_carga_pratica: Mapped[str] = mapped_column("UnidadeCargaPratica", String(10), nullable=False, default="NAO_INFO")
+    unidade_carga_teorica_semanal: Mapped[str] = mapped_column("UnidadeCargaTeoricaSemanal", String(10), nullable=False, default="NAO_INFO")
+    unidade_carga_pratica_semanal: Mapped[str] = mapped_column("UnidadeCargaPraticaSemanal", String(10), nullable=False, default="NAO_INFO")
+    unidade_carga_total_semanal: Mapped[str] = mapped_column("UnidadeCargaTotalSemanal", String(10), nullable=False, default="NAO_INFO")
+
+    carga_horaria_declarada: Mapped[Decimal | None] = mapped_column(
         "CargaHorariaDeclarada",
         Numeric(8, 2),
-        nullable=False,
+        nullable=True,
     )
 
     unidade_carga_horaria: Mapped[str] = mapped_column(
@@ -471,9 +482,9 @@ class EmentaModel(Base):
         nullable=True,
     )
 
-    carga_horaria_normalizada_min: Mapped[int | None] = mapped_column(
+    carga_horaria_normalizada_min: Mapped[Decimal | None] = mapped_column(
         "CargaHorariaNormalizadaMin",
-        Integer,
+        Numeric(12, 2),
         nullable=True,
     )
 
