@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     db_trust_server_certificate: str = "yes"
     db_echo: bool = False
 
+    login_hmac_secret: str = ""
+
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.5-flash-lite"
 

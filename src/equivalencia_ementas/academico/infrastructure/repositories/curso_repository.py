@@ -51,6 +51,25 @@ class SqlAlchemyCursoRepository:
 
         return self._converter_para_dominio(model)
 
+    def listar_ativos_por_instituicao(self, instituicao_id: int) -> list[Curso]:
+        statement = (
+            select(CursoModel)
+            .where(
+                CursoModel.instituicao_id == instituicao_id,
+                CursoModel.ativo == 1,
+            )
+            .order_by(CursoModel.nome, CursoModel.curso_id)
+        )
+
+        cursos = []
+
+        for model in self._session.scalars(statement):
+            curso = self._converter_para_dominio(model)
+
+            if curso is not None:
+                cursos.append(curso)
+
+        return cursos
     @staticmethod
     def _converter_para_dominio(
         model: CursoModel | None,

@@ -44,3 +44,6 @@ git
 data/extracoes_ia/
 
 data/resultados_gemini/
+
+# Documentos recebidos pela aplicação
+/var/uploads/
