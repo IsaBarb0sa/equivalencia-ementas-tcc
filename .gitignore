@@ -1,31 +1,33 @@
-# Ambiente virtual
+# Ambientes virtuais
 .venv/
 venv/
+env/
 
-# Credenciais e configurações locais
+# Variáveis de ambiente e credenciais
 .env
-.env.local
+.env.*
+!.env.example
 
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
+*.egg-info/
+build/
+dist/
 
 # Testes e cobertura
 .pytest_cache/
 .coverage
 htmlcov/
-
-# Ferramentas
 .ruff_cache/
 .mypy_cache/
 
-# PyCharm
+# PyCharm e VS Code
 .idea/
 *.iml
+.vscode/
 
-# Sistema operacional
+# Arquivos do sistema operacional
 .DS_Store
 Thumbs.db
 
@@ -33,19 +35,12 @@ Thumbs.db
 *.log
 *.tmp
 
-# Ementas Institucionais
-data/
+# Dados de extração
+/data/
 
-git
-
+# PDFs de testes com documentos reais
 /tests/fixtures/ementas/**/*.pdf
 /tests/fixtures/ementas/*.pdf
 
-data/extracoes_ia/
-
-data/resultados_gemini/
-
 # Documentos recebidos pela aplicação
 /var/uploads/
-
-*.egg-info/

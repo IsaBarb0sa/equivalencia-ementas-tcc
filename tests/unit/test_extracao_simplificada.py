@@ -74,10 +74,21 @@ class TestExtracaoSimplificada(unittest.TestCase):
         self.assertIsNone(r.disciplinas[0].objetivos.especificos)
         self.assertEqual(r.disciplinas[0].objetivos.nao_classificados, 'Aprender.')
 
-    def test_cache_novo_nao_reutiliza_v9(self):
-        self.assertEqual(VERSAO_CACHE_GEMINI, '10')
-        p = self.proc._caminho_cache_bloco('abc', 0, 9)
-        self.assertIn('__v10__', p.name)
+    def test_cache_atual_nao_reutiliza_versao_antiga(self):
+        self.assertEqual(VERSAO_CACHE_GEMINI, "12")
+
+        caminho = self.proc._caminho_cache_bloco(
+            "abc",
+            0,
+            9,
+        )
+
+        self.assertIn(
+            f"__v{VERSAO_CACHE_GEMINI}__",
+            caminho.name,
+        )
+
+        self.assertNotIn("__v9__", caminho.name)
 
     def test_cache_preserva_novo_contrato(self):
         p = Path(self.temp.name)/'cache.json'
