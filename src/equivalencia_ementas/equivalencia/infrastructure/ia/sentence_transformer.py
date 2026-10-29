@@ -58,3 +58,26 @@ class GeradorSentenceTransformer:
         )
 
         return vetores.tolist()
+
+    @property
+    def limite_tokens(self) -> int:
+        return int(self._modelo.max_seq_length)
+
+    def contar_tokens(self, texto: str) -> int:
+        if not isinstance(texto, str):
+            raise TypeError(
+                "O texto deve ser uma string."
+            )
+
+        tokenizer = self._modelo.tokenizer
+
+        # A segmentação precisa da contagem completa, mesmo acima do limite.
+        # Esta etapa apenas conta tokens; não envia a sequência ao modelo.
+        tokens = tokenizer.encode(
+            texto,
+            add_special_tokens=True,
+            truncation=False,
+            verbose=False,
+        )
+
+        return len(tokens)

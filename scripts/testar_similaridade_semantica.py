@@ -4,6 +4,9 @@ from equivalencia_ementas.equivalencia.domain.services.similaridade import (
 from equivalencia_ementas.equivalencia.infrastructure.ia.sentence_transformer import (
     GeradorSentenceTransformer,
 )
+from equivalencia_ementas.equivalencia.application.segmentar_texto import (
+    segmentar_texto,
+)
 
 
 def main():
@@ -36,6 +39,31 @@ def main():
     print("Textos relacionados:", round(similaridade_relacionada, 4))
     print("Textos diferentes:", round(similaridade_diferente, 4))
 
+    texto_longo = (
+        "Modelagem de dados, normalização, consultas SQL, "
+        "transações e administração de bancos de dados. "
+    ) * 30
+
+    trechos = segmentar_texto(
+        texto=texto_longo,
+        contar_tokens=gerador.contar_tokens,
+        limite_tokens=gerador.limite_tokens,
+    )
+
+    print("Trechos gerados:", len(trechos))
+
+    for indice, trecho in enumerate(trechos):
+        quantidade = gerador.contar_tokens(trecho)
+
+        print(
+            f"Trecho {indice + 1}: {quantidade} tokens"
+        )
+
+        assert quantidade <= gerador.limite_tokens
+
+    assert " ".join(trechos) == " ".join(
+        texto_longo.split()
+    )
 
 if __name__ == "__main__":
     main()

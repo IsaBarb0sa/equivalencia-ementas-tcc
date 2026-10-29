@@ -46,3 +46,10 @@ class DisciplinaParaEquivalencia:
             isinstance(campo, str) and bool(campo.strip())
             for campo in campos
         )
+
+@dataclass(frozen=True)
+class TrechoAcademico:
+    secao: str
+    indice: int
+    texto: str
+    quantidade_tokens: int
