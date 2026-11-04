@@ -77,9 +77,10 @@ def executar(
         trechos_origem=trechos_origem,
         trechos_destino=trechos_destino,
         quantidade_melhores=3,
+        recuperacao_hibrida=True,
     )
 
-    print("\nCOMPARAÇÃO SEMÂNTICA E LEXICAL")
+    print("\nCOMPARAÇÃO HÍBRIDA DE EMENTAS")
     print("=" * 60)
 
     print(f"Origem: {origem.nome}")

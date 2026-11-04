@@ -240,3 +240,75 @@ def test_preservar_ordenacao_semantica():
         item.similaridade_lexical is not None
         for item in correspondencias
     )
+
+def test_recuperacao_hibrida_inclui_candidato_lexical(
+    monkeypatch,
+):
+    import equivalencia_ementas.equivalencia.application.comparar_trechos as modulo
+
+    class GeradorControlado:
+        nome_modelo = "modelo-controlado"
+
+        def gerar(self, textos):
+            vetores = {
+                "Destino A": [1.0, 0.0],
+                "Origem A": [1.0, 0.0],
+                "Origem B": [0.0, 1.0],
+            }
+            return [vetores[texto] for texto in textos]
+
+    # O candidato A vence semanticamente.
+    # O candidato B vence lexicalmente.
+    monkeypatch.setattr(
+        modulo,
+        "calcular_similaridade_lexical",
+        lambda textos_destino, textos_origem: [
+            [0.1, 0.9]
+        ],
+    )
+
+    comparador = CompararTrechos(GeradorControlado())
+
+    resultado = comparador.executar(
+        trechos_origem=[
+            criar_trecho("Origem A"),
+            criar_trecho("Origem B"),
+        ],
+        trechos_destino=[
+            criar_trecho("Destino A"),
+        ],
+        quantidade_melhores=1,
+        recuperacao_hibrida=True,
+    )
+
+    nomes = {
+        correspondencia.trecho_origem.texto
+        for correspondencia in resultado.correspondencias
+    }
+
+    assert nomes == {"Origem A", "Origem B"}
+    assert len(resultado.correspondencias) == 2
+
+def test_recuperacao_hibrida_nao_duplica_candidatos():
+    comparador = CompararTrechos(GeradorFalso())
+
+    resultado = comparador.executar(
+        trechos_origem=[
+            criar_trecho("Origem A"),
+            criar_trecho("Origem B"),
+        ],
+        trechos_destino=[
+            criar_trecho("Destino A"),
+        ],
+        quantidade_melhores=2,
+        recuperacao_hibrida=True,
+    )
+
+    assert len(resultado.correspondencias) == 2
+
+    nomes = [
+        item.trecho_origem.texto
+        for item in resultado.correspondencias
+    ]
+
+    assert len(nomes) == len(set(nomes))

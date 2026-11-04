@@ -40,6 +40,7 @@ class CompararTrechos:
         trechos_origem: list[TrechoAcademico],
         trechos_destino: list[TrechoAcademico],
         quantidade_melhores: int = 3,
+        recuperacao_hibrida: bool = False,
     ) -> ResultadoComparacaoTrechos:
 
         if quantidade_melhores < 1:
@@ -121,15 +122,46 @@ class CompararTrechos:
                     )
                 )
 
-            candidatas.sort(
+            # Seleção dos melhores candidatos pela semântica.
+            melhores_semanticos = sorted(
+                range(len(candidatas)),
+                key=lambda indice: candidatas[indice].similaridade,
+                reverse=True,
+            )[:quantidade_melhores]
+
+            if recuperacao_hibrida:
+                # Seleção independente dos melhores candidatos
+                # pela similaridade lexical.
+                melhores_lexicais = sorted(
+                    range(len(candidatas)),
+                    key=lambda indice: candidatas[indice].similaridade_lexical,
+                    reverse=True,
+                )[:quantidade_melhores]
+
+                # A união remove duplicatas, utilizando os índices
+                # para identificar os pares de trechos.
+                indices_selecionados = set(
+                    melhores_semanticos
+                ) | set(
+                    melhores_lexicais
+                )
+
+            else:
+                indices_selecionados = set(
+                    melhores_semanticos
+                )
+
+            # Mantemos a ordem semântica para apresentação.
+            selecionadas = sorted(
+                (
+                    candidatas[indice]
+                    for indice in indices_selecionados
+                ),
                 key=lambda item: item.similaridade,
                 reverse=True,
             )
 
-            correspondencias.extend(
-                candidatas[:quantidade_melhores]
-            )
-
+            correspondencias.extend(selecionadas)
         return ResultadoComparacaoTrechos(
             modelo=self._gerador.nome_modelo,
             correspondencias=tuple(correspondencias),
