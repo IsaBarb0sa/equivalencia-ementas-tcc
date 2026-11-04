@@ -11,12 +11,22 @@ from equivalencia_ementas.equivalencia.domain.entities import (
 from equivalencia_ementas.equivalencia.domain.services.similaridade import (
     similaridade_cosseno,
 )
+from equivalencia_ementas.equivalencia.domain.services.similaridade_lexical import (
+    calcular_similaridade_lexical,
+)
 
 
 class CompararTrechos:
     """
-    Identifica as melhores correspondências semânticas
-    para cada trecho da disciplina de destino.
+    Identifica as melhores correspondências para cada
+    trecho da disciplina de destino.
+
+    Calcula:
+    - Similaridade semântica por embeddings;
+    - Similaridade lexical por TF-IDF.
+
+    A ordenação permanece baseada na similaridade
+    semântica até a validação do método híbrido.
     """
 
     def __init__(
@@ -64,28 +74,50 @@ class CompararTrechos:
         vetores_destino = vetores[:quantidade_destino]
         vetores_origem = vetores[quantidade_destino:]
 
+        # A matriz lexical é calculada uma única vez,
+        # considerando todos os trechos das duas disciplinas.
+        matriz_lexical = calcular_similaridade_lexical(
+            textos_destino=[
+                trecho.texto
+                for trecho in trechos_destino
+            ],
+            textos_origem=[
+                trecho.texto
+                for trecho in trechos_origem
+            ],
+        )
+
         correspondencias = []
 
-        for trecho_destino, vetor_destino in zip(
-            trechos_destino,
-            vetores_destino,
+        for indice_destino, (
+            trecho_destino,
+            vetor_destino,
+        ) in enumerate(
+            zip(trechos_destino, vetores_destino)
         ):
             candidatas = []
 
-            for trecho_origem, vetor_origem in zip(
-                trechos_origem,
-                vetores_origem,
+            for indice_origem, (
+                trecho_origem,
+                vetor_origem,
+            ) in enumerate(
+                zip(trechos_origem, vetores_origem)
             ):
-                pontuacao = similaridade_cosseno(
+                pontuacao_semantica = similaridade_cosseno(
                     vetor_destino,
                     vetor_origem,
                 )
+
+                pontuacao_lexical = matriz_lexical[
+                    indice_destino
+                ][indice_origem]
 
                 candidatas.append(
                     CorrespondenciaTrecho(
                         trecho_destino=trecho_destino,
                         trecho_origem=trecho_origem,
-                        similaridade=pontuacao,
+                        similaridade=pontuacao_semantica,
+                        similaridade_lexical=pontuacao_lexical,
                     )
                 )
 

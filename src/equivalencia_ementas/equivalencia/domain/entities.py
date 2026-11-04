@@ -59,6 +59,7 @@ class CorrespondenciaTrecho:
     trecho_destino: TrechoAcademico
     trecho_origem: TrechoAcademico
     similaridade: float
+    similaridade_lexical: float | None = None
 
 
 @dataclass(frozen=True)

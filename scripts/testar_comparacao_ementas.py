@@ -79,7 +79,7 @@ def executar(
         quantidade_melhores=3,
     )
 
-    print("\nCOMPARAÇÃO SEMÂNTICA")
+    print("\nCOMPARAÇÃO SEMÂNTICA E LEXICAL")
     print("=" * 60)
 
     print(f"Origem: {origem.nome}")
@@ -106,9 +106,15 @@ def executar(
         print(f"\nCorrespondência {indice}")
 
         print(
-            f"Similaridade: "
+            f"Similaridade semântica: "
             f"{correspondencia.similaridade:.4f}"
         )
+
+        if correspondencia.similaridade_lexical is not None:
+            print(
+                f"Similaridade lexical: "
+                f"{correspondencia.similaridade_lexical:.4f}"
+            )
 
         print(
             f"Seção destino: "

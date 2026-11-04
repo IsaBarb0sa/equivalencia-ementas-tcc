@@ -197,3 +197,46 @@ def test_preservar_ordem_dos_trechos_destino():
         "Destino B",
         "Destino B",
     ]
+
+def test_calcular_similaridade_lexical():
+    comparador = CompararTrechos(GeradorFalso())
+
+    resultado = comparador.executar(
+        trechos_origem=[criar_trecho("Origem A")],
+        trechos_destino=[criar_trecho("Destino A")],
+    )
+
+    correspondencia = resultado.correspondencias[0]
+
+    assert correspondencia.similaridade_lexical is not None
+
+    assert (
+        0 <= correspondencia.similaridade_lexical <= 1
+    )
+
+
+def test_preservar_ordenacao_semantica():
+    comparador = CompararTrechos(GeradorFalso())
+
+    resultado = comparador.executar(
+        trechos_origem=[
+            criar_trecho("Origem A"),
+            criar_trecho("Origem B"),
+        ],
+        trechos_destino=[
+            criar_trecho("Destino A"),
+        ],
+        quantidade_melhores=2,
+    )
+
+    correspondencias = resultado.correspondencias
+
+    assert (
+        correspondencias[0].similaridade
+        >= correspondencias[1].similaridade
+    )
+
+    assert all(
+        item.similaridade_lexical is not None
+        for item in correspondencias
+    )
