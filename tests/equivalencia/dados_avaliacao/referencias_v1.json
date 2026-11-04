@@ -1,0 +1,197 @@
+{
+  "versao": "1.0",
+  "descricao": "Referencias preliminares para avaliacao da recuperacao de correspondencias entre conteudos academicos.",
+  "status": "pendente_revisao",
+  "referencias": [
+    {
+      "id": "REF001",
+      "area": "Banco de Dados",
+      "origem": {
+        "arquivo": "data/resultados_gemini/BANCOS_DE_DADOS_I__gemini.json",
+        "disciplina": "BANCOS DE DADOS I",
+        "secao": "ementa",
+        "texto": "Álgebra relacional."
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/bancodados__gemini.json",
+        "disciplina": "Banco de Dados",
+        "secao": "ementa",
+        "texto": "Álgebra Relacional."
+      },
+      "classificacao_proposta": "correspondente",
+      "classificacao_validada": null,
+      "justificativa": "Ambos os trechos apresentam o mesmo assunto."
+    },
+    {
+      "id": "REF002",
+      "area": "Banco de Dados",
+      "origem": {
+        "arquivo": "data/resultados_gemini/BANCOS_DE_DADOS_I__gemini.json",
+        "disciplina": "BANCOS DE DADOS I",
+        "secao": "conteudo_programatico",
+        "texto": "Dependência funcional e normalização"
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/bancodados__gemini.json",
+        "disciplina": "Banco de Dados",
+        "secao": "conteudo_programatico",
+        "texto": "Normalização de Banco de Dados"
+      },
+      "classificacao_proposta": "correspondente",
+      "classificacao_validada": null,
+      "justificativa": "Os trechos compartilham o assunto normalizacao de dados, embora o primeiro tambem mencione dependencia funcional."
+    },
+    {
+      "id": "REF003",
+      "area": "Banco de Dados",
+      "origem": {
+        "arquivo": "data/resultados_gemini/BANCOS_DE_DADOS_I__gemini.json",
+        "disciplina": "BANCOS DE DADOS I",
+        "secao": "conteudo_programatico",
+        "texto": "Controle de transações"
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/bancodados__gemini.json",
+        "disciplina": "Banco de Dados",
+        "secao": "conteudo_programatico",
+        "texto": "Gerenciamento de Transações"
+      },
+      "classificacao_proposta": "parcialmente_relacionado",
+      "classificacao_validada": null,
+      "justificativa": "Os assuntos sao relacionados, mas gerenciamento de transacoes pode abranger outros conceitos alem do controle de transacoes."
+    },
+    {
+      "id": "REF004",
+      "area": "Banco de Dados",
+      "origem": {
+        "arquivo": "data/resultados_gemini/BANCOS_DE_DADOS_I__gemini.json",
+        "disciplina": "BANCOS DE DADOS I",
+        "secao": "conteudo_programatico",
+        "texto": "Procedimentos armazenados"
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/bancodados__gemini.json",
+        "disciplina": "Banco de Dados",
+        "secao": "conteudo_programatico",
+        "texto": "Views, Functions e Stored Procedure"
+      },
+      "classificacao_proposta": "parcialmente_relacionado",
+      "classificacao_validada": null,
+      "justificativa": "Procedimentos armazenados correspondem a parte dos conceitos apresentados no trecho de destino."
+    },
+    {
+      "id": "REF005",
+      "area": "Estruturas de Dados",
+      "origem": {
+        "arquivo": "data/resultados_gemini/11__resoluCAo_011_anexo_-_ppc_ccomputaCAo__gemini.json",
+        "disciplina": "Estrutura de Dados I",
+        "secao": "ementa",
+        "texto": "Pilhas."
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/Estrutura de Dados__gemini.json",
+        "disciplina": "Estruturas de Dados",
+        "secao": "ementa",
+        "texto": "Estrutura Pilha."
+      },
+      "classificacao_proposta": "correspondente",
+      "classificacao_validada": null,
+      "justificativa": "Os trechos abordam a estrutura de dados pilha."
+    },
+    {
+      "id": "REF006",
+      "area": "Estruturas de Dados",
+      "origem": {
+        "arquivo": "data/resultados_gemini/11__resoluCAo_011_anexo_-_ppc_ccomputaCAo__gemini.json",
+        "disciplina": "Estrutura de Dados I",
+        "secao": "ementa",
+        "texto": "Filas."
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/Estrutura de Dados__gemini.json",
+        "disciplina": "Estruturas de Dados",
+        "secao": "ementa",
+        "texto": "Estrutura Fila."
+      },
+      "classificacao_proposta": "correspondente",
+      "classificacao_validada": null,
+      "justificativa": "Os trechos abordam a estrutura de dados fila."
+    },
+    {
+      "id": "REF007",
+      "area": "Engenharia de Software",
+      "origem": {
+        "arquivo": "data/resultados_gemini/11__resoluCAo_011_anexo_-_ppc_ccomputaCAo__gemini.json",
+        "disciplina": "Engenharia de Software",
+        "secao": "ementa",
+        "texto": "Ciclo de vida e paradigmas de desenvolvimento de software."
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/Engenharia de Software__gemini.json",
+        "disciplina": "Engenharia de Software",
+        "secao": "ementa",
+        "texto": "Modelos de Ciclo de Vida de Software."
+      },
+      "classificacao_proposta": "parcialmente_relacionado",
+      "classificacao_validada": null,
+      "justificativa": "Ambos abordam o ciclo de vida de software, mas o primeiro possui abrangencia maior."
+    },
+    {
+      "id": "REF008",
+      "area": "Comparacao entre areas distintas",
+      "origem": {
+        "arquivo": "data/resultados_gemini/11__resoluCAo_011_anexo_-_ppc_ccomputaCAo__gemini.json",
+        "disciplina": "Estrutura de Dados I",
+        "secao": "ementa",
+        "texto": "Pilhas."
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/bancodados__gemini.json",
+        "disciplina": "Banco de Dados",
+        "secao": "ementa",
+        "texto": "Álgebra Relacional."
+      },
+      "classificacao_proposta": "nao_correspondente",
+      "classificacao_validada": null,
+      "justificativa": "O primeiro trecho aborda a estrutura de dados pilha, enquanto o segundo aborda algebra relacional."
+    },
+    {
+      "id": "REF009",
+      "area": "Comparacao entre areas distintas",
+      "origem": {
+        "arquivo": "data/resultados_gemini/BANCOS_DE_DADOS_I__gemini.json",
+        "disciplina": "BANCOS DE DADOS I",
+        "secao": "conteudo_programatico",
+        "texto": "Controle de transações"
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/Estrutura de Dados__gemini.json",
+        "disciplina": "Estruturas de Dados",
+        "secao": "ementa",
+        "texto": "Estrutura Fila."
+      },
+      "classificacao_proposta": "nao_correspondente",
+      "classificacao_validada": null,
+      "justificativa": "Controle de transacoes em bancos de dados e estruturas de dados do tipo fila representam assuntos distintos."
+    },
+    {
+      "id": "REF010",
+      "area": "Comparacao entre areas distintas",
+      "origem": {
+        "arquivo": "data/resultados_gemini/11__resoluCAo_011_anexo_-_ppc_ccomputaCAo__gemini.json",
+        "disciplina": "Engenharia de Software",
+        "secao": "ementa",
+        "texto": "Ciclo de vida e paradigmas de desenvolvimento de software."
+      },
+      "destino": {
+        "arquivo": "data/resultados_unipac/bancodados__gemini.json",
+        "disciplina": "Banco de Dados",
+        "secao": "conteudo_programatico",
+        "texto": "Normalização de Banco de Dados"
+      },
+      "classificacao_proposta": "nao_correspondente",
+      "classificacao_validada": null,
+      "justificativa": "O primeiro trecho aborda processos de desenvolvimento de software, enquanto o segundo trata de normalizacao de bancos de dados."
+    }
+  ]
+}
