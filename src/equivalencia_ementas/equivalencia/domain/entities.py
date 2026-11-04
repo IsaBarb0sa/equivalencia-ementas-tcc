@@ -53,3 +53,17 @@ class TrechoAcademico:
     indice: int
     texto: str
     quantidade_tokens: int
+
+@dataclass(frozen=True)
+class CorrespondenciaTrecho:
+    trecho_destino: TrechoAcademico
+    trecho_origem: TrechoAcademico
+    similaridade: float
+
+
+@dataclass(frozen=True)
+class ResultadoComparacaoTrechos:
+    modelo: str
+    correspondencias: tuple[CorrespondenciaTrecho, ...]
+    quantidade_trechos_destino: int
+    quantidade_trechos_origem: int

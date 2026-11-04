@@ -7,8 +7,8 @@ from equivalencia_ementas.equivalencia.domain.entities import (
     TrechoAcademico,
 )
 
-from equivalencia_ementas.equivalencia.application.segmentar_texto import (
-    segmentar_texto,
+from equivalencia_ementas.equivalencia.application.segmentar_topicos import (
+    segmentar_topicos,
 )
 
 
@@ -42,8 +42,9 @@ def preparar_trechos(
         if not texto or not texto.strip():
             continue
 
-        segmentos = segmentar_texto(
+        segmentos = segmentar_topicos(
             texto=texto,
+            secao=nome_secao,
             contar_tokens=contar_tokens,
             limite_tokens=limite_tokens,
         )
