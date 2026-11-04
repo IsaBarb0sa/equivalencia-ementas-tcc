@@ -45,6 +45,7 @@ def test_identificar_melhores_correspondencias():
     resultado = comparador.executar(
         trechos_origem=origem,
         trechos_destino=destino,
+        quantidade_melhores=1,
     )
 
     assert len(resultado.correspondencias) == 2
@@ -104,3 +105,95 @@ def test_preservar_pontuacao():
     )
 
     assert 0 <= resultado.correspondencias[0].similaridade <= 1
+
+def test_retornar_tres_melhores_correspondencias():
+    comparador = CompararTrechos(GeradorFalso())
+
+    origem = [
+        criar_trecho("Origem A"),
+        criar_trecho("Origem B"),
+    ]
+
+    destino = [
+        criar_trecho("Destino A"),
+    ]
+
+    resultado = comparador.executar(
+        trechos_origem=origem,
+        trechos_destino=destino,
+        quantidade_melhores=3,
+    )
+
+    # Existem apenas dois trechos de origem.
+    assert len(resultado.correspondencias) == 2
+
+    assert (
+        resultado.correspondencias[0].similaridade
+        >= resultado.correspondencias[1].similaridade
+    )
+
+
+def test_limitar_quantidade_correspondencias():
+    comparador = CompararTrechos(GeradorFalso())
+
+    origem = [
+        criar_trecho("Origem A"),
+        criar_trecho("Origem B"),
+    ]
+
+    destino = [
+        criar_trecho("Destino A"),
+    ]
+
+    resultado = comparador.executar(
+        trechos_origem=origem,
+        trechos_destino=destino,
+        quantidade_melhores=1,
+    )
+
+    assert len(resultado.correspondencias) == 1
+
+
+def test_rejeitar_quantidade_invalida():
+    import pytest
+
+    comparador = CompararTrechos(GeradorFalso())
+
+    with pytest.raises(ValueError):
+        comparador.executar(
+            trechos_origem=[criar_trecho("Origem A")],
+            trechos_destino=[criar_trecho("Destino A")],
+            quantidade_melhores=0,
+        )
+
+
+def test_preservar_ordem_dos_trechos_destino():
+    comparador = CompararTrechos(GeradorFalso())
+
+    destino = [
+        criar_trecho("Destino A"),
+        criar_trecho("Destino B"),
+    ]
+
+    origem = [
+        criar_trecho("Origem A"),
+        criar_trecho("Origem B"),
+    ]
+
+    resultado = comparador.executar(
+        trechos_origem=origem,
+        trechos_destino=destino,
+        quantidade_melhores=2,
+    )
+
+    assert len(resultado.correspondencias) == 4
+
+    assert [
+        item.trecho_destino.texto
+        for item in resultado.correspondencias
+    ] == [
+        "Destino A",
+        "Destino A",
+        "Destino B",
+        "Destino B",
+    ]

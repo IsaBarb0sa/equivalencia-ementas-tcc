@@ -76,6 +76,7 @@ def executar(
     resultado = comparador.executar(
         trechos_origem=trechos_origem,
         trechos_destino=trechos_destino,
+        quantidade_melhores=3,
     )
 
     print("\nCOMPARAÇÃO SEMÂNTICA")

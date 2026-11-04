@@ -16,7 +16,7 @@ from equivalencia_ementas.equivalencia.domain.services.similaridade import (
 class CompararTrechos:
     """
     Identifica as melhores correspondências semânticas
-    para os trechos exigidos pela disciplina de destino.
+    para cada trecho da disciplina de destino.
     """
 
     def __init__(
@@ -29,7 +29,13 @@ class CompararTrechos:
         self,
         trechos_origem: list[TrechoAcademico],
         trechos_destino: list[TrechoAcademico],
+        quantidade_melhores: int = 3,
     ) -> ResultadoComparacaoTrechos:
+
+        if quantidade_melhores < 1:
+            raise ValueError(
+                "A quantidade de correspondências deve ser positiva."
+            )
 
         if not trechos_origem or not trechos_destino:
             return ResultadoComparacaoTrechos(
@@ -64,7 +70,7 @@ class CompararTrechos:
             trechos_destino,
             vetores_destino,
         ):
-            melhor = None
+            candidatas = []
 
             for trecho_origem, vetor_origem in zip(
                 trechos_origem,
@@ -75,18 +81,22 @@ class CompararTrechos:
                     vetor_origem,
                 )
 
-                if (
-                    melhor is None
-                    or pontuacao > melhor.similaridade
-                ):
-                    melhor = CorrespondenciaTrecho(
+                candidatas.append(
+                    CorrespondenciaTrecho(
                         trecho_destino=trecho_destino,
                         trecho_origem=trecho_origem,
                         similaridade=pontuacao,
                     )
+                )
 
-            if melhor is not None:
-                correspondencias.append(melhor)
+            candidatas.sort(
+                key=lambda item: item.similaridade,
+                reverse=True,
+            )
+
+            correspondencias.extend(
+                candidatas[:quantidade_melhores]
+            )
 
         return ResultadoComparacaoTrechos(
             modelo=self._gerador.nome_modelo,
