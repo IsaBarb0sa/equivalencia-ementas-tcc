@@ -1782,3 +1782,11 @@ def atualizar_texto_bibliografia_institucional(
         session.rollback()
         logger.exception("Erro inesperado ao atualizar bibliografia.")
         raise
+
+from equivalencia_ementas.api.routers.equivalencia import (
+    criar_router_equivalencia,
+)
+
+app.include_router(
+    criar_router_equivalencia(obter_usuario_autenticado)
+)

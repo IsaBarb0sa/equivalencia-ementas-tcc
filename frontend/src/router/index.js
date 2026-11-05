@@ -69,15 +69,20 @@ const router = createRouter({
         import('../views/EmentasInstitucionaisView.vue'),
       meta: { perfil: 'COORDENADOR' },
     },
-    
-{
-  path: '/coordenacao/ementas/:matrizDisciplinaId/:ementaId',
-  name: 'detalhe-ementa-institucional',
-  component: () =>
-    import('../views/DetalheEmentaInstitucionalView.vue'),
-  meta: { perfil: 'COORDENADOR' },
-},
-
+    {
+      path: '/coordenacao/equivalencias',
+      name: 'analise-equivalencia',
+      component: () =>
+        import('../views/AnaliseEquivalenciaView.vue'),
+      meta: { perfil: 'COORDENADOR' },
+    },
+    {
+      path: '/coordenacao/ementas/:matrizDisciplinaId/:ementaId',
+      name: 'detalhe-ementa-institucional',
+      component: () =>
+        import('../views/DetalheEmentaInstitucionalView.vue'),
+      meta: { perfil: 'COORDENADOR' },
+    },
   ],
 })
 
